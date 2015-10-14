@@ -37,6 +37,10 @@
 
 void auto_init_cc2538rf(void)
 {
+    DEBUG("auto init cc2538rf: doing auto init\n");
+
+    cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
+                   gpio_t sleep_pin, gpio_t reset_pin);
 
 }
 #else
