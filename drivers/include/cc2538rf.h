@@ -41,7 +41,8 @@ extern "C" {
 #define RFCORE_XREG_FRMCTRL0_AUTOACK          (0x20) /** AUTO ACK XREG FRMCTRL0 */
 #define RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN  (0x01) /** enables frame filtering */
 #define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
-
+#define CC2538RF_TX_POWER_RECOMMENDED         (0xD5) /* ToDo: Determine value */
+#define CC2538RF_DEFAULT_CHANNEL              (18) /** CC2538rf default channel */
 
 typedef enum {
     CC2538RF_FREQ_915MHZ,       /**< frequency 915MHz enabled */

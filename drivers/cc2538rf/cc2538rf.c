@@ -84,14 +84,13 @@ int cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
   RFCORE_XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
 
   /* Set TX Power */
-  RFCORE_XREG_TXPOWER = CC2538_RF_TX_POWER;
+  RFCORE_XREG_TXPOWER = CC2538RF_TX_POWER_RECOMMENDED;
 
-  set_channel(rf_channel);
+  cc2538rf_set_chan(dev, CC2538RF_DEFAULT_CHANNEL);
 
   /* Acknowledge RF interrupts, FIFOP only */
   RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
   nvic_interrupt_enable(NVIC_INT_RF_RXTX);
-
   /* Acknowledge all RF Error interrupts */
   RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
   nvic_interrupt_enable(NVIC_INT_RF_ERR);
@@ -165,4 +164,10 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev)
 void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,
                        size_t offset)
 {
+}
+
+
+void cc2538rf_set_chan(cc2538rf_t *dev, uint8_t chan)
+{
+
 }
