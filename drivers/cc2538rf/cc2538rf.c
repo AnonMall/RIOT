@@ -44,60 +44,56 @@ int cc2538rf_init(cc2538rf_t *dev, spi_t spi, spi_speed_t spi_speed,
 int cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
                    gpio_t sleep_pin, gpio_t reset_pin)
 {
-  PRINTF("RF: Init\n");
-
-  if(rf_flags & RF_ON) {
-    return 0;
-  }
+  DEBUG("cc2538rf: Init\n");
 
   /* Enable clock for the RF Core while Running, in Sleep and Deep Sleep */
-  REG(SYS_CTRL_RCGCRFC) = 1;
-  REG(SYS_CTRL_SCGCRFC) = 1;
-  REG(SYS_CTRL_DCGCRFC) = 1;
+  SYS_CTRL_RCGCRFC = 1;
+  SYS_CTRL_SCGCRFC = 1;
+  SYS_CTRL_DCGCRFC = 1;
 
-  REG(RFCORE_XREG_CCACTRL0) = CC2538_RF_CCA_THRES_USER_GUIDE;
+  RFCORE_XREG_CCACTRL0 = CC2538RF_CCA_THRES;
 
   /*
    * Changes from default values
    * See User Guide, section "Register Settings Update"
    */
-  REG(RFCORE_XREG_TXFILTCFG) = 0x09;    /** TX anti-aliasing filter bandwidth */
-  REG(RFCORE_XREG_AGCCTRL1) = 0x15;     /** AGC target value */
-  REG(ANA_REGS_IVCTRL) = 0x0B;          /** Bias currents */
+  RFCORE_XREG_TXFILTCFG = 0x09;    /** TX anti-aliasing filter bandwidth */
+  RFCORE_XREG_AGCCTRL1 = 0x15;     /** AGC target value */
+  ANA_REGS_IVCTRL = 0x0B;          /** Bias currents */
 
   /*
    * Defaults:
    * Auto CRC; Append RSSI, CRC-OK and Corr. Val.; CRC calculation;
    * RX and TX modes with FIFOs
    */
-  REG(RFCORE_XREG_FRMCTRL0) = RFCORE_XREG_FRMCTRL0_AUTOCRC;
+  RFCORE_XREG_FRMCTRL0 = RFCORE_XREG_FRMCTRL0_AUTOCRC;
 
 #if CC2538_RF_AUTOACK
-  REG(RFCORE_XREG_FRMCTRL0) |= RFCORE_XREG_FRMCTRL0_AUTOACK;
+  RFCORE_XREG_FRMCTRL0 |= RFCORE_XREG_FRMCTRL0_AUTOACK;
 #endif
 
   /* If we are a sniffer, turn off frame filtering */
 #if CC2538_RF_CONF_SNIFFER
-  REG(RFCORE_XREG_FRMFILT0) &= ~RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN;
+  RFCORE_XREG_FRMFILT0 &= ~RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN;
 #endif
 
   /* Disable source address matching and autopend */
-  REG(RFCORE_XREG_SRCMATCH) = 0;
+  RFCORE_XREG_SRCMATCH = 0;
 
   /* MAX FIFOP threshold */
-  REG(RFCORE_XREG_FIFOPCTRL) = CC2538_RF_MAX_PACKET_LEN;
+  RFCORE_XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
 
   /* Set TX Power */
-  REG(RFCORE_XREG_TXPOWER) = CC2538_RF_TX_POWER;
+  RFCORE_XREG_TXPOWER = CC2538_RF_TX_POWER;
 
   set_channel(rf_channel);
 
   /* Acknowledge RF interrupts, FIFOP only */
-  REG(RFCORE_XREG_RFIRQM0) |= RFCORE_XREG_RFIRQM0_FIFOP;
+  RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
   nvic_interrupt_enable(NVIC_INT_RF_RXTX);
 
   /* Acknowledge all RF Error interrupts */
-  REG(RFCORE_XREG_RFERRM) = RFCORE_XREG_RFERRM_RFERRM;
+  RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
   nvic_interrupt_enable(NVIC_INT_RF_ERR);
 
   if(CC2538_RF_CONF_TX_USE_DMA) {

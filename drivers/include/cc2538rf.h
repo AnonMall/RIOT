@@ -36,6 +36,13 @@
 extern "C" {
 #endif
 
+#define CC2538RF_CCA_THRES                    (0xF8) /** CCA Threshold */
+#define RFCORE_XREG_FRMCTRL0_AUTOCRC          (0x40) /** AUTO CRC XREG FRMCTRL0 */
+#define RFCORE_XREG_FRMCTRL0_AUTOACK          (0x20) /** AUTO ACK XREG FRMCTRL0 */
+#define RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN  (0x01) /** enables frame filtering */
+#define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
+
+
 typedef enum {
     CC2538RF_FREQ_915MHZ,       /**< frequency 915MHz enabled */
     CC2538RF_FREQ_868MHZ,       /**< frequency 868MHz enabled */
