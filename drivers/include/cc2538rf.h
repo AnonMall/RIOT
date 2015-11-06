@@ -31,6 +31,8 @@
 #include "periph/gpio.h"
 #include "net/gnrc/netdev.h"
 #include "cc2538rf.h"
+#include "rfcore.h"
+#include "nvic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,6 +45,7 @@ extern "C" {
 #define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
 #define CC2538RF_TX_POWER_RECOMMENDED         (0xD5) /* ToDo: Determine value */
 #define CC2538RF_DEFAULT_CHANNEL              (18) /** CC2538rf default channel */
+#define RFCORE_XREG_RFIRQM0_FIFOP             (0x04) /**< RX FIFO exceeded threshold */
 
 typedef enum {
     CC2538RF_FREQ_915MHZ,       /**< frequency 915MHz enabled */
@@ -104,8 +107,7 @@ int cc2538rf_init(cc2538rf_t *dev, spi_t spi, spi_speed_t spi_speed,
                    gpio_t cs_pin, gpio_t int_pin,
                    gpio_t sleep_pin, gpio_t reset_pin);
  */
- int cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
-                   gpio_t sleep_pin, gpio_t reset_pin);
+ int cc2538rf_init(cc2538rf_t *dev);
 
 /**
  * @brief   Trigger a hardware reset and configure radio with default values

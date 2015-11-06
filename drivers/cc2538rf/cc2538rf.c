@@ -28,8 +28,32 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#define UDMA_ENABLED 0
+
+/*Some Status Flags for the Radio */
+static uint8_t rf_flags;
+
+/* Local RF Flags */
+#define RX_ACTIVE     0x80
+#define RF_MUST_RESET 0x40
+#define RF_ON         0x01
 
 #define RESET_DELAY             (1U)        /* must be > 625ns */
+
+static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
+
+return -1;
+}
+
+const gnrc_netdev_driver_t cc2538rf_driver = {
+    .send_data = _send
+    //.add_event_callback = _add_event_cb,
+    //.rem_event_callback = _rem_event_cb,
+    //.get = _get,
+    //.set = _set,
+    //.isr_event = _isr_event,
+};
+
 
 /*
 static void _irq_handler(void *arg)
@@ -41,10 +65,11 @@ int cc2538rf_init(cc2538rf_t *dev, spi_t spi, spi_speed_t spi_speed,
                    gpio_t sleep_pin, gpio_t
 */
 //TODO check with contiki and stuff
-int cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
-                   gpio_t sleep_pin, gpio_t reset_pin)
+int cc2538rf_init(cc2538rf_t *dev)
 {
   DEBUG("cc2538rf: Init\n");
+
+  dev->driver = &cc2538rf_driver;
 
   /* Enable clock for the RF Core while Running, in Sleep and Deep Sleep */
   SYS_CTRL_RCGCRFC = 1;
@@ -90,14 +115,16 @@ int cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
 
   /* Acknowledge RF interrupts, FIFOP only */
   RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
-  nvic_interrupt_enable(NVIC_INT_RF_RXTX);
+  NVIC_EnableIRQ(NVIC_INT_RF_RXTX);
   /* Acknowledge all RF Error interrupts */
   RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
-  nvic_interrupt_enable(NVIC_INT_RF_ERR);
+  NVIC_EnableIRQ(NVIC_INT_RF_ERR);
 
+#if UDMA_ENABLED
   if(CC2538_RF_CONF_TX_USE_DMA) {
     /* Disable peripheral triggers for the channel */
     udma_channel_mask_set(CC2538_RF_CONF_TX_DMA_CHAN);
+
 
     /*
      * Set the channel's DST. SRC can not be set yet since it will change for
@@ -117,13 +144,15 @@ int cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
     udma_set_channel_src(CC2538_RF_CONF_RX_DMA_CHAN, RFCORE_SFR_RFDATA);
   }
 
-  process_start(&cc2538_rf_process, NULL);
+  #endif
+
+//process_start(&cc2538_rf_process, NULL);
 
   rf_flags |= RF_ON;
 
-  ENERGEST_ON(ENERGEST_TYPE_LISTEN);
+  //ENERGEST_ON(ENERGEST_TYPE_LISTEN);
 
-    return -1;
+    return 0;
 }
 
 void cc2538rf_reset(cc2538rf_t *dev)

@@ -221,6 +221,17 @@ enum {
     ISCLEAR        = 0xff,                /**< Clear CSP program memory, reset program counter */
 };
 
+/* RFCore Register BitMasks */
+/*---------------------------------------------------------------------------*/
+#define RFCORE_XREG_RFERRM_RFERRM    0x0000007F /**< RF error interrupt mask */
+#define RFCORE_XREG_RFERRM_STROBEERR 0x00000040 /**< Strobe error */
+#define RFCORE_XREG_RFERRM_TXUNDERF  0x00000020 /**< TX FIFO underflowed */
+#define RFCORE_XREG_RFERRM_TXOVERF   0x00000010 /**< TX FIFO overflowed */
+#define RFCORE_XREG_RFERRM_RXUNDERF  0x00000008 /**< RX FIFO underflowed */
+#define RFCORE_XREG_RFERRM_RXOVERF   0x00000004 /**< RX FIFO overflowed */
+#define RFCORE_XREG_RFERRM_RXABO     0x00000002 /**< Frame RX was aborted */
+#define RFCORE_XREG_RFERRM_NLOCK     0x00000001 /**< Frequency synthesizer lock error */
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

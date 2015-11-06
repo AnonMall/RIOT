@@ -34,14 +34,22 @@
  */
 
 
+#define CC2538RF_MAC_STACKSIZE     (THREAD_STACKSIZE_DEFAULT)
+#define CC2538RF_MAC_PRIO          (THREAD_PRIORITY_MAIN - 4)
+//#define CC2538RF_NUM (sizeof(cc2538rf_params)/sizeof(cc2538rf_params[0]))
+
+static char _nomac_stacks[CC2538RF_MAC_STACKSIZE];
+static cc2538rf_t cc2538rf_dev;
 
 void auto_init_cc2538rf(void)
 {
     DEBUG("auto init cc2538rf: doing auto init\n");
 
-    cc2538rf_init(cc2538rf_t *dev, gpio_t cs_pin, gpio_t int_pin,
-                   gpio_t sleep_pin, gpio_t reset_pin);
+    cc2538rf_init(&cc2538rf_dev);
 
+     gnrc_nomac_init(&_nomac_stacks[0],
+                    CC2538RF_MAC_STACKSIZE, CC2538RF_MAC_PRIO,
+                    "cc2538rf", (gnrc_netdev_t *)&cc2538rf_dev);
 }
 #else
 typedef int dont_be_pedantic;
