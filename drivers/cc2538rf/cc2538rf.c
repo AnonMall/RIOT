@@ -40,18 +40,52 @@ static uint8_t rf_flags;
 
 #define RESET_DELAY             (1U)        /* must be > 625ns */
 
+//TODO: not implemented yet
 static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 return -1;
 }
 
+
+//TODO: not implemented yet
+static int _add_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
+{
+    return -1;
+}
+
+
+//TODO: not implemented yet
+static int _rem_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
+{
+
+
+    return -1;
+}
+
+
+static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
+{
+  return -1;
+}
+
+static int _set(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)
+{
+
+    return -1;
+}
+
+
+static void _isr_event(gnrc_netdev_t *device, uint32_t event_type)
+{
+}
+
 const gnrc_netdev_driver_t cc2538rf_driver = {
-    .send_data = _send
-    //.add_event_callback = _add_event_cb,
-    //.rem_event_callback = _rem_event_cb,
-    //.get = _get,
-    //.set = _set,
-    //.isr_event = _isr_event,
+    .send_data = _send,
+    .add_event_callback = _add_event_cb,
+    .rem_event_callback = _rem_event_cb,
+    .get = _get,
+    .set = _set,
+    .isr_event = _isr_event,
 };
 
 
