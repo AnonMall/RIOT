@@ -79,6 +79,7 @@ static void _isr_event(gnrc_netdev_t *device, uint32_t event_type)
 {
 }
 
+
 const gnrc_netdev_driver_t cc2538rf_driver = {
     .send_data = _send,
     .add_event_callback = _add_event_cb,
