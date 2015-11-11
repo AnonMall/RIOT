@@ -43,6 +43,41 @@ static uint8_t rf_flags;
 //TODO: not implemented yet
 static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
+    gnrc_pktsnip_t *snip;
+    size_t len;
+
+    if (pkt == NULL) {
+        return -ENOMSG;
+      }
+
+
+    if (dev == NULL) {
+        gnrc_pktbuf_release(pkt);
+        return -ENODEV;
+    }
+
+    /* create 802.15.4 header */
+    len = _make_data_frame_hdr(dev, mhr, (gnrc_netif_hdr_t *)pkt->data);
+    if (len == 0) {
+        DEBUG("[cc2538rf] error: unable to create 802.15.4 header\n");
+        gnrc_pktbuf_release(pkt);
+        return -ENOMSG;
+    }
+
+    /* check if packet (header + payload + FCS) fits into FIFO */
+    snip = pkt->next;
+    if ((gnrc_pkt_len(snip) + len + 2) > CC2538RF_MAX_PKT_LENGTH) {
+        printf("[cc2538rf] error: packet too large (%u byte) to be send\n",
+               gnrc_pkt_len(snip) + len + 2);
+        gnrc_pktbuf_release(pkt);
+        return -EOVERFLOW;
+    }
+
+    //TODO: prepare package for sending and send over fifo of cc2538rf
+
+
+    gnrc_pktbuf_release(pkt);
+
 return -1;
 }
 
