@@ -60,12 +60,6 @@ typedef struct {
     const gnrc_netdev_driver_t *driver; /**< pointer to the devices interface */
     gnrc_netdev_event_cb_t event_cb;    /**< netdev event callback */
     kernel_pid_t mac_pid;               /**< the driver's thread's PID */
-    /* device specific fields */
-    //spi_t spi;                          /**< used SPI device */
-    gpio_t cs_pin;                      /**< chip select pin */
-    gpio_t sleep_pin;                   /**< sleep pin */
-    gpio_t reset_pin;                   /**< reset pin */
-    gpio_t int_pin;                     /**< external interrupt pin */
     gnrc_nettype_t proto;               /**< protocol the radio expects */
     uint8_t state;                      /**< current state of the radio */
     uint8_t seq_nr;                     /**< sequence number to use next */
