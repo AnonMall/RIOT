@@ -43,6 +43,10 @@ static uint8_t rf_flags;
 //TODO: not implemented yet
 static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
+
+  DEBUG("cc2538rf: trying to send stuff\n");
+  printf("cc2538rf: trying to send stuff\n");
+
     cc2538rf_t *dev = (cc2538rf_t *)netdev;
     gnrc_pktsnip_t *snip;
     size_t len;
@@ -159,15 +163,6 @@ const gnrc_netdev_driver_t cc2538rf_driver = {
 };
 
 
-/*
-static void _irq_handler(void *arg)
-{
-}
-
-int cc2538rf_init(cc2538rf_t *dev, spi_t spi, spi_speed_t spi_speed,
-                   gpio_t cs_pin, gpio_t int_pin,
-                   gpio_t sleep_pin, gpio_t
-*/
 //TODO check with contiki and stuff also device not fully initialized
 //in sense of riot yet
 int cc2538rf_init(cc2538rf_t *dev)
@@ -177,22 +172,26 @@ int cc2538rf_init(cc2538rf_t *dev)
   dev->driver = &cc2538rf_driver;
 
 /*
-  /* Enable clock for the RF Core while Running, in Sleep and Deep Sleep *
+  Commented out the init block to make a dummy first
+
+
+
+  * Enable clock for the RF Core while Running, in Sleep and Deep Sleep *
   SYS_CTRL_RCGCRFC = 1;
   SYS_CTRL_SCGCRFC = 1;
   SYS_CTRL_DCGCRFC = 1;
 
   RFCORE_XREG_CCACTRL0 = CC2538RF_CCA_THRES;
 
-  /*
+  *
    * Changes from default values
    * See User Guide, section "Register Settings Update"
    *
-  RFCORE_XREG_TXFILTCFG = 0x09;    /** TX anti-aliasing filter bandwidth *
-  RFCORE_XREG_AGCCTRL1 = 0x15;     /** AGC target value *
-  ANA_REGS_IVCTRL = 0x0B;          /** Bias currents *
+  RFCORE_XREG_TXFILTCFG = 0x09;    ** TX anti-aliasing filter bandwidth *
+  RFCORE_XREG_AGCCTRL1 = 0x15;     ** AGC target value *
+  ANA_REGS_IVCTRL = 0x0B;          ** Bias currents *
 
-  /*
+  *
    * Defaults:
    * Auto CRC; Append RSSI, CRC-OK and Corr. Val.; CRC calculation;
    * RX and TX modes with FIFOs
@@ -203,36 +202,36 @@ int cc2538rf_init(cc2538rf_t *dev)
   RFCORE_XREG_FRMCTRL0 |= RFCORE_XREG_FRMCTRL0_AUTOACK;
 #endif
 
-  /* If we are a sniffer, turn off frame filtering *
+  * If we are a sniffer, turn off frame filtering *
 #if CC2538_RF_CONF_SNIFFER
   RFCORE_XREG_FRMFILT0 &= ~RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN;
 #endif
 
-  /* Disable source address matching and autopend *
+  * Disable source address matching and autopend *
   RFCORE_XREG_SRCMATCH = 0;
 
-  /* MAX FIFOP threshold *
+  * MAX FIFOP threshold *
   RFCORE_XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
 
-  /* Set TX Power *
+  * Set TX Power *
   RFCORE_XREG_TXPOWER = CC2538RF_TX_POWER_RECOMMENDED;
 
   cc2538rf_set_chan(dev, CC2538RF_DEFAULT_CHANNEL);
 
-  /* Acknowledge RF interrupts, FIFOP only *
+  * Acknowledge RF interrupts, FIFOP only *
   RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
   NVIC_EnableIRQ(NVIC_INT_RF_RXTX);
-  /* Acknowledge all RF Error interrupts *
+  * Acknowledge all RF Error interrupts *
   RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
   NVIC_EnableIRQ(NVIC_INT_RF_ERR);
 
 #if UDMA_ENABLED
   if(CC2538_RF_CONF_TX_USE_DMA) {
-    /* Disable peripheral triggers for the channel *
+    * Disable peripheral triggers for the channel *
     udma_channel_mask_set(CC2538_RF_CONF_TX_DMA_CHAN);
 
 
-    /*
+    *
      * Set the channel's DST. SRC can not be set yet since it will change for
      * each transfer
      *
@@ -240,10 +239,10 @@ int cc2538rf_init(cc2538rf_t *dev)
   }
 
   if(CC2538_RF_CONF_RX_USE_DMA) {
-    /* Disable peripheral triggers for the channel *
+    * Disable peripheral triggers for the channel *
     udma_channel_mask_set(CC2538_RF_CONF_RX_DMA_CHAN);
 
-    /*
+
      * Set the channel's SRC. DST can not be set yet since it will change for
      * each transfer
      *
