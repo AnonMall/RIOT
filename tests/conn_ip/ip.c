@@ -129,6 +129,7 @@ static int ip_send(char *addr_str, char *port_str, char *data, unsigned int num,
     }
     /* parse protocol */
     protocol = (uint8_t)atoi(port_str);
+    printf("protocol chosen: %i\n", protocol);
     data_len = _parse_data(byte_data, data);
     for (unsigned int i = 0; i < num; i++) {
         if (conn_ip_sendto(byte_data, data_len, &src, sizeof(src), (struct sockaddr *)&dst,

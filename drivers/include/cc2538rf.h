@@ -38,6 +38,13 @@
 extern "C" {
 #endif
 
+/*Some configuration*/
+#ifdef CC2538_RF_CONF_AUTOACK
+#define CC2538_RF_AUTOACK CC2538_RF_CONF_AUTOACK
+#else
+#define CC2538_RF_AUTOACK 1
+#endif /* CC2538_RF_CONF_AUTOACK */
+
 #define CC2538RF_CCA_THRES                    (0xF8) /** CCA Threshold */
 #define RFCORE_XREG_FRMCTRL0_AUTOCRC          (0x40) /** AUTO CRC XREG FRMCTRL0 */
 #define RFCORE_XREG_FRMCTRL0_AUTOACK          (0x20) /** AUTO ACK XREG FRMCTRL0 */
@@ -46,6 +53,34 @@ extern "C" {
 #define CC2538RF_TX_POWER_RECOMMENDED         (0xD5) /* ToDo: Determine value */
 #define CC2538RF_DEFAULT_CHANNEL              (18) /** CC2538rf default channel */
 #define RFCORE_XREG_RFIRQM0_FIFOP             (0x04) /**< RX FIFO exceeded threshold */
+#define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
+#define IEEE_ADDR_LOCATION_SECONDARY 0x0027FFCC /**< Secondary IEEE address location */
+
+/**
+ * @brief   Internal device option flags
+ * @{
+ */
+#define CC2538RF_OPT_AUTOACK        (0x0001)       /**< auto ACKs active */
+#define CC2538RFRF2XX_OPT_CSMA      (0x0002)       /**< CSMA active */
+#define CC2538RF_OPT_PROMISCUOUS    (0x0004)       /**< promiscuous mode
+                                                     *   active */
+#define CC2538RF_OPT_PRELOADING     (0x0008)       /**< preloading enabled */
+#define CC2538RF_OPT_TELL_TX_START  (0x0010)       /**< notify MAC layer on TX
+                                                     *   start */
+#define CC2538RF_OPT_TELL_TX_END    (0x0020)       /**< notify MAC layer on TX
+                                                     *   finished */
+#define CC2538RF_OPT_TELL_RX_START  (0x0040)       /**< notify MAC layer on RX
+                                                     *   start */
+#define CC2538RF_OPT_TELL_RX_END    (0x0080)       /**< notify MAC layer on RX
+                                                     *   finished */
+#define CC2538RF_OPT_RAWDUMP        (0x0100)       /**< pass RAW frame data to
+                                                     *   upper layer */
+#define CC2538RF_OPT_SRC_ADDR_LONG  (0x0200)       /**< send data using long
+                                                     *   source address */
+#define CC2538RF_OPT_USE_SRC_PAN    (0x0400)       /**< do not compress source
+                                                     *   PAN ID */
+/** @} */
+
 
 typedef enum {
     CC2538RF_FREQ_915MHZ,       /**< frequency 915MHz enabled */
