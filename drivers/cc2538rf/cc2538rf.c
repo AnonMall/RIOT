@@ -95,6 +95,7 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
 
     /* fill in source PAN ID (if applicable) */
     if (dev->options & CC2538RF_OPT_USE_SRC_PAN) {
+        DEBUG("cc2538rf: using src pan\n");
         buf[pos++] = (uint8_t)((dev->pan) & 0xff);
         buf[pos++] = (uint8_t)((dev->pan) >> 8);
     } else {
@@ -359,6 +360,13 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     //send transmit opcode to csp
     RFCORE_SFR_RFST = 0xe9;
 
+
+  int counter = 0;
+  while(!((RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE))
+        && (counter++ < 3)) {
+    xtimer_usleep(6);
+  }
+
 #if ENABLE_DEBUG
 
     while(RFCORE_XREG_FSMSTAT1 & 0x2 )
@@ -431,6 +439,12 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
 
       case NETOPT_ADDRESS_LONG:
       DEBUG("NETOPT_ADDRESS_LONG  ");
+            if (max_len < sizeof(uint64_t)) {
+                return -EOVERFLOW;
+            }
+            *((uint64_t *)val) = cc2538rf_get_addr_long(dev);
+            return sizeof(uint64_t);
+
       break;
 
       case NETOPT_ADDR_LEN:
@@ -449,11 +463,14 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
                 *((uint16_t *)val) = 2;
             }
             return sizeof(uint16_t);
-      break;
 
       case NETOPT_NID:
       DEBUG("NETOPT_NID  ");
-      break;
+            if (max_len < sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            *((uint16_t *)val) = dev->pan;
+            return sizeof(uint16_t);
 
       case NETOPT_IPV6_IID:
       DEBUG("NETOPT_IPV6_IID  ");
@@ -482,6 +499,12 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
 
       case NETOPT_CHANNEL:
       DEBUG("NETOPT_CHANNEL  ");
+            if (max_len < sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            ((uint8_t *)val)[1] = 0;
+            ((uint8_t *)val)[0] = cc2538rf_get_chan(dev);
+            return sizeof(uint16_t);
       break;
 
       case NETOPT_TX_POWER:
@@ -656,12 +679,25 @@ int cc2538rf_init(cc2538rf_t *dev)
   }
   DEBUG("\n");
 
+  //setting pan id
+  DEBUG("cc2538rf: setting pan id: %u\n", CC2538RF_DEFAULT_PANID);
+  cc2538rf_set_pan(dev, CC2538RF_DEFAULT_PANID);
+
+  //setting channel
+  DEBUG("cc2538rf: setting channel: %u\n", CC2538RF_DEFAULT_CHANNEL);
+  cc2538rf_set_chan(dev, CC2538RF_DEFAULT_CHANNEL);
+
 #ifdef MODULE_GNRC_SIXLOWPAN
   DEBUG("cc2538rf: 6lowpan enabled \n");
   dev->proto = GNRC_NETTYPE_SIXLOWPAN;
 #else
   dev->proto = GNRC_NETTYPE_UNDEF;
 #endif
+
+//set device options to use pan
+dev->options |= CC2538RF_OPT_USE_SRC_PAN;
+//set device options to use long address
+dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
 
 /*
@@ -809,6 +845,9 @@ uint8_t cc2538rf_get_chan(cc2538rf_t *dev)
 
 void cc2538rf_set_chan(cc2538rf_t *dev, uint8_t chan)
 {
+  uint8_t regChannel = 11+(5*(chan-11));
+  RFCORE_XREG_FREQCTRL = regChannel;
+  dev->chan = chan;
 
 }
 
@@ -858,4 +897,19 @@ uint16_t cc2538rf_get_addr_short(cc2538rf_t *dev)
 {
   uint16_t shortAddr = (dev->addr_short[1] << 8) | dev->addr_short[0];
   return shortAddr;
+}
+
+
+void cc2538rf_set_pan(cc2538rf_t *dev, uint16_t pan)
+{
+    RFCORE_FFSM_PAN_ID0 = (uint8_t) pan;
+    RFCORE_FFSM_PAN_ID1 = (uint8_t) pan>>8;
+    dev->pan = pan;
+
+}
+
+
+uint16_t cc2538rf_get_pan(cc2538rf_t *dev)
+{
+  return dev->pan;
 }

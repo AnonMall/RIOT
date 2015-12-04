@@ -51,7 +51,9 @@ extern "C" {
 #define RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN  (0x01) /** enables frame filtering */
 #define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
 #define CC2538RF_TX_POWER_RECOMMENDED         (0xD5) /* ToDo: Determine value */
-#define CC2538RF_DEFAULT_CHANNEL              (18) /** CC2538rf default channel */
+#define CC2538RF_DEFAULT_CHANNEL              (15) /** CC2538rf default channel */
+#define CC2538RF_DEFAULT_PANID                (777) /** CC2538rf default channel */
+#define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - TX states */
 #define RFCORE_XREG_RFIRQM0_FIFOP             (0x04) /**< RX FIFO exceeded threshold */
 #define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
 #define IEEE_ADDR_LOCATION_SECONDARY 0x0027FFCC /**< Secondary IEEE address location */
@@ -113,10 +115,10 @@ typedef struct {
 typedef struct cc2538rf_params {
     //spi_t spi;              /**< SPI bus the device is connected to */
     //spi_speed_t spi_speed;  /**< SPI speed to use */
-    gpio_t cs_pin;          /**< GPIO pin connected to chip select */
-    gpio_t int_pin;         /**< GPIO pin connected to the interrupt pin */
-    gpio_t sleep_pin;       /**< GPIO pin connected to the sleep pin */
-    gpio_t reset_pin;       /**< GPIO pin connected to the reset pin */
+    //gpio_t cs_pin;          /**< GPIO pin connected to chip select */
+    //gpio_t int_pin;         /**< GPIO pin connected to the interrupt pin */
+    //gpio_t sleep_pin;       /**< GPIO pin connected to the sleep pin */
+    //gpio_t reset_pin;       /**< GPIO pin connected to the reset pin */
 } cc2538rf_params_t;
 
 /**
