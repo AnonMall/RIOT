@@ -260,6 +260,50 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
       gnrc_pktsnip_t *current = pkt;
       while(current){
         data = current->data;
+        switch(current->type){
+          case GNRC_NETTYPE_IOVEC:
+            DEBUG("PKT Type is GNRC_NETTYPE_IOVEC  ");
+            break;
+
+          case GNRC_NETTYPE_NETIF:
+            DEBUG("PKT Type is GNRC_NETTYPE_NETIF  ");
+            break;
+
+          case GNRC_NETTYPE_UNDEF:
+            DEBUG("PKT Type is GNRC_NETTYPE_UNDEF  ");
+            break;
+
+
+          case GNRC_NETTYPE_SIXLOWPAN:
+            DEBUG("PKT Type is GNRC_NETTYPE_SIXLOWPAN  ");
+            break;
+
+          case GNRC_NETTYPE_IPV6:
+            DEBUG("PKT Type is GNRC_NETTYPE_IPV6  ");
+            break;
+
+          case GNRC_NETTYPE_ICMPV6:
+            DEBUG("PKT Type is GNRC_NETTYPE_ICMPV6  ");
+            break;
+
+/*
+          case GNRC_NETTYPE_TCP:
+            DEBUG("PKT Type is GNRC_NETTYPE_TCP  ");
+            break;
+*/
+          case GNRC_NETTYPE_UDP:
+            DEBUG("PKT Type is GNRC_NETTYPE_UDP  ");
+            break;
+
+          case GNRC_NETTYPE_NUMOF:
+            DEBUG("PKT Type is GNRC_NETTYPE_NUMOF  ");
+            break;
+
+          default:
+            DEBUG("PKT Type is something else  ");
+            break;
+
+        }
         for(int i = 0; i < current->size; i++){
           DEBUG("0x%x ", *(data+i));
         }
@@ -280,8 +324,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     }
 
     /* create 802.15.4 header */
-    //len = _make_data_frame_hdr(dev, mhr, (gnrc_netif_hdr_t *)pkt->data);
-    len = pkt->size;
     if (len == 0) {
         DEBUG("[cc2538rf] error: 802.15.4 header is empty\n");
         gnrc_pktbuf_release(pkt);
@@ -296,10 +338,36 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
         printf("[cc2538rf] error: packet too large (%u byte) to be send\n",
                gnrc_pkt_len(snip) + len + 2);
         gnrc_pktbuf_release(pkt);
+        DEBUG("cc2538rf: package overflow\n");
         return -EOVERFLOW;
     }
 
     //TODO: prepare package for sending and send over fifo of cc2538rf
+
+
+    DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
+    for(int i = 0; i<IEEE802154_MAX_HDR_LEN; i++){
+      RFCORE_SFR_RFDATA = mhr[i];
+    }
+    while(snip){
+      for(int i = 0; i< snip->size; i++){
+        RFCORE_SFR_RFDATA = *(((uint8_t*)(snip->data))+i);
+    }
+      snip = snip->next;
+    }
+
+    //send transmit opcode to csp
+    RFCORE_SFR_RFST = 0xe9;
+
+#if ENABLE_DEBUG
+
+    while(RFCORE_XREG_FSMSTAT1 & 0x2 )
+      DEBUG("cc2538rf: Still Sending\n");
+
+      DEBUG("cc2538rf: sending complete\n");
+
+#endif
+
 
 
     gnrc_pktbuf_release(pkt);
@@ -405,6 +473,11 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
 
       case NETOPT_PROTO:
       DEBUG("NETOPT_PROTO  ");
+            if (max_len < sizeof(gnrc_nettype_t)) {
+                return -EOVERFLOW;
+            }
+            *((gnrc_nettype_t *)val) = dev->proto;
+            return sizeof(gnrc_nettype_t);
       break;
 
       case NETOPT_CHANNEL:
@@ -582,6 +655,13 @@ int cc2538rf_init(cc2538rf_t *dev)
     DEBUG("%x:", dev->addr_short[i]);
   }
   DEBUG("\n");
+
+#ifdef MODULE_GNRC_SIXLOWPAN
+  DEBUG("cc2538rf: 6lowpan enabled \n");
+  dev->proto = GNRC_NETTYPE_SIXLOWPAN;
+#else
+  dev->proto = GNRC_NETTYPE_UNDEF;
+#endif
 
 
 /*

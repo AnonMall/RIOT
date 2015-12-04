@@ -18,7 +18,7 @@
 #include "net/gnrc/pktbuf.h"
 #include "net/protnum.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 #if ENABLE_DEBUG && defined(MODULE_IPV6_ADDR)

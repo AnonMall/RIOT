@@ -1,4 +1,6 @@
 ifneq (,$(filter gnrc_netif_default,$(USEMODULE)))
   USEMODULE += cc2538rf
+  USEMODULE += gnrc_sixlowpan
+  USEMODULE += gnrc_conn_udp
   USEMODULE += gnrc_nomac
 endif
