@@ -50,9 +50,9 @@ extern "C" {
 #define RFCORE_XREG_FRMCTRL0_AUTOACK          (0x20) /** AUTO ACK XREG FRMCTRL0 */
 #define RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN  (0x01) /** enables frame filtering */
 #define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
-#define CC2538RF_TX_POWER_RECOMMENDED         (0xD5) /* ToDo: Determine value */
+#define CC2538RF_TX_POWER                     (0xD5) /* ToDo: Determine value */
 #define CC2538RF_DEFAULT_CHANNEL              (15) /** CC2538rf default channel */
-#define CC2538RF_DEFAULT_PANID                (777) /** CC2538rf default channel */
+#define CC2538RF_DEFAULT_PANID                (777) /** CC2538rf PAN ID */
 #define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - TX states */
 #define RFCORE_XREG_RFIRQM0_FIFOP             (0x04) /**< RX FIFO exceeded threshold */
 #define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
@@ -83,6 +83,25 @@ extern "C" {
                                                      *   PAN ID */
 /** @} */
 
+/* CSP OPCODES */
+#define CC2538_RF_CSP_OP_ISRXON                0xE3
+#define CC2538_RF_CSP_OP_ISTXON                0xE9
+#define CC2538_RF_CSP_OP_ISTXONCCA             0xEA
+#define CC2538_RF_CSP_OP_ISRFOFF               0xEF
+#define CC2538_RF_CSP_OP_ISFLUSHRX             0xED
+#define CC2538_RF_CSP_OP_ISFLUSHTX             0xEE
+#define CC2538_RF_CSP_OP_ISCLEAR               0xFF
+#define CC2538_RF_CSP_OP_ISSTART               0xE1
+
+
+/* CSP MASK */
+#define CC2538RF_CSP_RUNNING         (0x20)
+
+
+/*Channel Values*/
+#define CC2538RF_CHANNEL_MIN            11
+#define CC2538RF_CHANNEL_MAX            26
+#define CC2538RF_CHANNEL_SPACING         5
 
 typedef enum {
     CC2538RF_FREQ_915MHZ,       /**< frequency 915MHz enabled */

@@ -29,9 +29,10 @@
 #include "debug.h"
 
 #define UDMA_ENABLED 0
+#define CHECKSUM_LEN 2
 
 /*Some Status Flags for the Radio */
-static uint8_t rf_flags;
+//static uint8_t rf_flags;
 
 /* Local RF Flags */
 #define RX_ACTIVE     0x80
@@ -101,7 +102,6 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
     } else {
         buf[0] |= IEEE802154_FCF_PAN_COMP;
     }
-        buf[0] |= IEEE802154_FCF_PAN_COMP;
 
     /* fill in source address*/
     if (dev->options & CC2538RF_OPT_SRC_ADDR_LONG) {
@@ -115,10 +115,6 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
         buf[pos++] = dev->addr_short[1];
     }
 
-
-        buf[1] |= IEEE802154_FCF_SRC_ADDR_LONG;
-        memcpy(&(buf[pos]), dev->addr_long, 8);
-        pos += 8;
 
     /* set sequence number */
     buf[2] = dev->seq_nr++;
@@ -237,14 +233,20 @@ static gnrc_pktsnip_t *_make_netif_hdr(uint8_t *mhr)
 static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
-  DEBUG("cc2538rf: trying to send stuff now package:\n");
+    DEBUG("cc2538rf: trying to send stuff now package:\n");
 
+    //wait until previous transmittion is finished
+    while(RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE);
 
+    //clearing TX FIFO
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
 
     cc2538rf_t *dev = (cc2538rf_t *)netdev;
     gnrc_pktsnip_t *snip;
     uint8_t mhr[IEEE802154_MAX_HDR_LEN];
     size_t len;
+
 
     if (pkt == NULL) {
         return -ENOMSG;
@@ -342,34 +344,52 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
         DEBUG("cc2538rf: package overflow\n");
         return -EOVERFLOW;
     }
+    DEBUG("cc2538rf: mac header len= %x, payload_len= %x\n", len, gnrc_pkt_len(snip));
+
 
     //TODO: prepare package for sending and send over fifo of cc2538rf
 
 
-    DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
-    for(int i = 0; i<IEEE802154_MAX_HDR_LEN; i++){
+    DEBUG("cc2538rf: putting macheader + payload_length+2 into RFDATA register\n");
+    RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
+
+    DEBUG("cc2538rf: putting stuff into the RFDATA register\n");
+    for(int i = 0; i<len; i++){
       RFCORE_SFR_RFDATA = mhr[i];
     }
+
     while(snip){
-      for(int i = 0; i< snip->size; i++){
-        RFCORE_SFR_RFDATA = *(((uint8_t*)(snip->data))+i);
-    }
+        for(int i = 0; i< snip->size; i++){
+          RFCORE_SFR_RFDATA = ((uint8_t*)(snip->data))[i];
+      }
       snip = snip->next;
     }
 
+    //read how much is in the TX FIFO
+    DEBUG("cc2538rf: amount currently in the TX FIFO: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
+
     //send transmit opcode to csp
-    RFCORE_SFR_RFST = 0xe9;
+    dev->state = NETOPT_STATE_TX;
+    DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISTXONCCA;
+
+    //check current csp instruction
+    uint8_t currentCSP = (uint8_t) RFCORE_SFR_RFST;
+    DEBUG("cc2538rf: current CSP instruction OPCODE: %x\n", currentCSP);
 
 
+/*
   int counter = 0;
   while(!((RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE))
         && (counter++ < 3)) {
+    DEBUG("cc2538rf: sleeping\n");
     xtimer_usleep(6);
   }
+*/
 
 #if ENABLE_DEBUG
 
-    while(RFCORE_XREG_FSMSTAT1 & 0x2 )
+    while(RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE )
       DEBUG("cc2538rf: Still Sending\n");
 
       DEBUG("cc2538rf: sending complete\n");
@@ -379,6 +399,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
     gnrc_pktbuf_release(pkt);
+    dev->state = NETOPT_STATE_IDLE;
 
 return -1;
 }
@@ -584,15 +605,53 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
 //TODO: not implemented yet
 static int _set(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)
 {
+  cc2538rf_t* dev = (cc2538rf_t*) device;
 
   DEBUG("cc2538rf: setting options:\n");
   switch(opt){
     case NETOPT_ADDRESS_LONG:
       DEBUG("NETOPT_ADDRESS_LONG\n");
-      break;
+            if (len > sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            cc2538rf_set_addr_long(dev, *((uint64_t*)val));
+            return sizeof(uint16_t);
+
+
     case NETOPT_ADDRESS:
       DEBUG("NETOPT_ADDRESS\n");
-      break;
+            if (len > sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            cc2538rf_set_addr_short(dev, *((uint16_t*)val));
+            return sizeof(uint16_t);
+
+
+    case NETOPT_NID:
+      DEBUG("NETOPT_NID\n");
+            if (len > sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            cc2538rf_set_pan(dev, *((uint16_t *)val));
+            return sizeof(uint16_t);
+
+
+    case NETOPT_SRC_LEN:
+      DEBUG("NETOPT_SRC_LEN\n");
+            if (len > sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            if (*((uint16_t *)val) == 2) {
+                dev->options &= ~(CC2538RF_OPT_SRC_ADDR_LONG);
+            }
+            else if (*((uint16_t *)val) == 8) {
+                dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
+            }
+            else {
+                return -ENOTSUP;
+            }
+            return sizeof(uint16_t);
+
     default:
       DEBUG("DEFAULT\n");
       break;
@@ -628,49 +687,43 @@ int cc2538rf_init(cc2538rf_t *dev)
 {
   DEBUG("cc2538rf: Init\n");
 
-  dev->driver = &cc2538rf_driver;
-
-  //Setting addresses from flash
-  //should be outscourced to other method later
-
-  //Long address
-  /*
-  uint32_t highLongTmp = IEEE_ADDR_MSWORD;
-  uint32_t lowLongTmp = IEEE_ADDR_LSWORD;
-  uint8_t highLongArray[4];
-  uint8_t lowLongArray[4];
-  for(int i = 0; i<4; i++){
-    lowLongArray[i] = lowLongTmp & 0xFF;
-    highLongArray[i] = highLongTmp & 0xFF;
-    dev->addr_long[7-i] = lowLongArray[i];
-    dev->addr_long[3-i] = highLongArray[i];
-    highLongTmp = highLongTmp >> 8;
-    lowLongTmp = lowLongTmp >> 8;
-
+  DEBUG("cc2538rf: checking if CSP is runngin or idle: \n");
+  if((uint8_t)RFCORE_XREG_CSPSTAT & CC2538RF_CSP_RUNNING){
+    DEBUG("cc2538rf: CSP is runngin\n");
+  }else{
+    DEBUG("cc2538rf: CSP is idle\n");
   }
 
-  RFCORE_FFSM_EXT_ADDR0 = lowLongArray[0];
-  RFCORE_FFSM_EXT_ADDR1 = lowLongArray[1];
-  RFCORE_FFSM_EXT_ADDR2 = lowLongArray[2];
-  RFCORE_FFSM_EXT_ADDR3 = lowLongArray[3];
-  RFCORE_FFSM_EXT_ADDR4 = highLongArray[0];
-  RFCORE_FFSM_EXT_ADDR5 = highLongArray[1];
-  RFCORE_FFSM_EXT_ADDR6 = highLongArray[2];
-  RFCORE_FFSM_EXT_ADDR7 = highLongArray[3];
-  */
+  //setting clock for the rfcore
+  SYS_CTRL_RCGCRFC = 1;
+  SYS_CTRL_SCGCRFC = 1;
+  SYS_CTRL_DCGCRFC = 1;
 
+  RFCORE_XREG_CCACTRL0 = CC2538RF_CCA_THRES;
+
+  dev->driver = &cc2538rf_driver;
+
+  //setting up addresses
   uint64_t mLongAddress = IEEE_ADDR_MSWORD;
   uint64_t lLongAddress = IEEE_ADDR_LSWORD;
   uint64_t longAddress = ( mLongAddress << 32) | lLongAddress;
+  uint8_t* longToShortAddress = (uint8_t*) &longAddress;
   cc2538rf_set_addr_long(dev, longAddress);
 
-  DEBUG("cc2538rf: current long address:\n");
+  DEBUG("cc2538rf: long address from flash: \n");
   for(int i = 0; i<8; i++){
-    DEBUG("%x:", dev->addr_long[7-i]);
+    DEBUG("%x:", longToShortAddress[i]);
   }
   DEBUG("\n");
 
-  uint16_t addr_short = (dev->addr_long[1]<<8) | dev->addr_long[0];
+
+  DEBUG("cc2538rf: current long address:\n");
+  for(int i = 0; i<8; i++){
+    DEBUG("%x:", dev->addr_long[i]);
+  }
+  DEBUG("\n");
+
+  uint16_t addr_short = (dev->addr_long[6]<<8) | dev->addr_long[7];
   cc2538rf_set_addr_short(dev, addr_short);
 
   DEBUG("cc2538rf: short address:\n");
@@ -700,95 +753,32 @@ dev->options |= CC2538RF_OPT_USE_SRC_PAN;
 dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
 
-/*
-  Commented out the init block to make a dummy first
-
-
-
-  * Enable clock for the RF Core while Running, in Sleep and Deep Sleep *
-  SYS_CTRL_RCGCRFC = 1;
-  SYS_CTRL_SCGCRFC = 1;
-  SYS_CTRL_DCGCRFC = 1;
-
-  RFCORE_XREG_CCACTRL0 = CC2538RF_CCA_THRES;
-
-  *
-   * Changes from default values
-   * See User Guide, section "Register Settings Update"
-   *
-  RFCORE_XREG_TXFILTCFG = 0x09;    ** TX anti-aliasing filter bandwidth *
-  RFCORE_XREG_AGCCTRL1 = 0x15;     ** AGC target value *
-  ANA_REGS_IVCTRL = 0x0B;          ** Bias currents *
-
-  *
-   * Defaults:
-   * Auto CRC; Append RSSI, CRC-OK and Corr. Val.; CRC calculation;
-   * RX and TX modes with FIFOs
-   *
-  RFCORE_XREG_FRMCTRL0 = RFCORE_XREG_FRMCTRL0_AUTOCRC;
-
-#if CC2538_RF_AUTOACK
-  RFCORE_XREG_FRMCTRL0 |= RFCORE_XREG_FRMCTRL0_AUTOACK;
-#endif
-
-  * If we are a sniffer, turn off frame filtering *
-#if CC2538_RF_CONF_SNIFFER
-  RFCORE_XREG_FRMFILT0 &= ~RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN;
-#endif
-
-  * Disable source address matching and autopend *
-  RFCORE_XREG_SRCMATCH = 0;
-
-  * MAX FIFOP threshold *
-  RFCORE_XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
-
-  * Set TX Power *
-  RFCORE_XREG_TXPOWER = CC2538RF_TX_POWER_RECOMMENDED;
-
-  cc2538rf_set_chan(dev, CC2538RF_DEFAULT_CHANNEL);
-
-  * Acknowledge RF interrupts, FIFOP only *
-  RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
-  NVIC_EnableIRQ(NVIC_INT_RF_RXTX);
-  * Acknowledge all RF Error interrupts *
-  RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
-  NVIC_EnableIRQ(NVIC_INT_RF_ERR);
-
-#if UDMA_ENABLED
-  if(CC2538_RF_CONF_TX_USE_DMA) {
-    * Disable peripheral triggers for the channel *
-    udma_channel_mask_set(CC2538_RF_CONF_TX_DMA_CHAN);
-
-
-    *
-     * Set the channel's DST. SRC can not be set yet since it will change for
-     * each transfer
-     *
-    udma_set_channel_dst(CC2538_RF_CONF_TX_DMA_CHAN, RFCORE_SFR_RFDATA);
-  }
-
-  if(CC2538_RF_CONF_RX_USE_DMA) {
-    * Disable peripheral triggers for the channel *
-    udma_channel_mask_set(CC2538_RF_CONF_RX_DMA_CHAN);
-
-
-     * Set the channel's SRC. DST can not be set yet since it will change for
-     * each transfer
-     *
-    udma_set_channel_src(CC2538_RF_CONF_RX_DMA_CHAN, RFCORE_SFR_RFDATA);
-  }
-
-  #endif
-*/
 #ifdef MODULE_GNRC_SIXLOWPAN
     dev->proto = GNRC_NETTYPE_SIXLOWPAN;
 #else
     dev->proto = GNRC_NETTYPE_UNDEF;
 #endif
 
-//process_start(&cc2538_rf_process, NULL);
 
-  rf_flags |= RF_ON;
+  //enable fifop interrupts
+  RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
+
+  //setting up calibration register
+  RFCORE_XREG_TXFILTCFG = 0x09; /* TX anti-aliasing filter */
+  RFCORE_XREG_AGCCTRL1 = 0x15;  /* AGC target value */
+  RFCORE_XREG_FSCAL1 = 0x00;    /* Reduce the VCO leakage */
+
+  //setting up AUTOCRC
+  RFCORE_XREG_FRMCTRL0 |= RFCORE_XREG_FRMCTRL0_AUTOCRC;
+
+  //disable source matching
+  RFCORE_XREG_SRCMATCH = 0;
+
+  //Setup max fifo threshold
+  RFCORE_XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
+
+  //rf_flags |= RF_ON;
+  RFCORE_XREG_TXPOWER = CC2538RF_TX_POWER;
   dev->state = NETOPT_STATE_IDLE;
 
   //ENERGEST_ON(ENERGEST_TYPE_LISTEN);
@@ -855,10 +845,12 @@ void cc2538rf_set_addr_long(cc2538rf_t *dev, uint64_t addr)
 {
   cc2538_rfcore_t* rfcore = RFCORE;
 
-  for(int i = 0; i<8; i++){
-    dev->addr_long[i] = (addr >> ((7-i)*8));
-  }
   uint8_t *addr_cut = (uint8_t*) &addr;
+  for(int i = 0; i<8; i++){
+    //dev->addr_long[i] = (addr >> ((7-i)*8));
+    dev->addr_long[i] = addr_cut[i];
+  }
+
   rfcore->FFSM_EXT_ADDR0 = addr_cut[7];
   rfcore->FFSM_EXT_ADDR1 = addr_cut[6];
   rfcore->FFSM_EXT_ADDR2 = addr_cut[5];
@@ -875,7 +867,7 @@ uint64_t cc2538rf_get_addr_long(cc2538rf_t *dev)
 {
   uint64_t longAddr = 0x0;
   for(int i=0; i<8; i++){
-    longAddr = (longAddr << 8) | dev->addr_long[7-i];
+    longAddr = (longAddr << 8) | dev->addr_long[i];
   }
 
   return longAddr;
@@ -885,8 +877,8 @@ uint64_t cc2538rf_get_addr_long(cc2538rf_t *dev)
 void cc2538rf_set_addr_short(cc2538rf_t *dev, uint16_t addr)
 {
     uint8_t *addr_cut = (uint8_t*) &addr;
-    dev->addr_short[0] = addr_cut[1];
-    dev->addr_short[1] = addr_cut[0];
+    dev->addr_short[0] = addr_cut[0];
+    dev->addr_short[1] = addr_cut[1];
     cc2538_rfcore_t* rfcore = RFCORE;
     rfcore->FFSM_SHORT_ADDR0 = addr_cut[1];
     rfcore->FFSM_SHORT_ADDR1 = addr_cut[0];
