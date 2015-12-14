@@ -704,9 +704,9 @@ int cc2538rf_init(cc2538rf_t *dev)
   dev->driver = &cc2538rf_driver;
 
   //setting up addresses
-  uint64_t mLongAddress = IEEE_ADDR_MSWORD;
-  uint64_t lLongAddress = IEEE_ADDR_LSWORD;
-  uint64_t longAddress = ( mLongAddress << 32) | lLongAddress;
+
+  uint64_t longAddress;
+  cpuid_get((void*)&longAddress);
   uint8_t* longToShortAddress = (uint8_t*) &longAddress;
   cc2538rf_set_addr_long(dev, longAddress);
 
