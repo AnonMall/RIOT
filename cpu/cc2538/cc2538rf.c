@@ -54,6 +54,7 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
     int pos = 0;
 
     /* we are building a data frame here */
+    DEBUG("cc2538rf mac address: building data frame\n");
     buf[0] = IEEE802154_FCF_TYPE_DATA;
     buf[1] = IEEE802154_FCF_VERS_V1;
 
@@ -72,17 +73,20 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
     /* fill in destination address */
     if (hdr->flags &
         (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
+        DEBUG("cc2538rf: its a broadcast\n");
         buf[1] |= IEEE802154_FCF_DST_ADDR_SHORT;
         buf[pos++] = 0xff;
         buf[pos++] = 0xff;
     }
     else if (hdr->dst_l2addr_len == 2) {
+        DEBUG("cc2538rf mac header: using short dst address\n");
         uint8_t *dst_addr = gnrc_netif_hdr_get_dst_addr(hdr);
         buf[1] |= IEEE802154_FCF_DST_ADDR_SHORT;
         buf[pos++] = dst_addr[1];
         buf[pos++] = dst_addr[0];
     }
     else if (hdr->dst_l2addr_len == 8) {
+        DEBUG("cc2538rf mac header: using long dst address\n");
         buf[1] |= IEEE802154_FCF_DST_ADDR_LONG;
         uint8_t *dst_addr = gnrc_netif_hdr_get_dst_addr(hdr);
         for (int i = 7;  i >= 0; i--) {
@@ -90,10 +94,12 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
         }
     }
     else {
+        DEBUG("cc2538rf mac header: unsupported address length\n");
         /* unsupported address length */
         return 0;
     }
 
+    DEBUG("cc2538rf: checkpoint\n");
     /* fill in source PAN ID (if applicable) */
     if (dev->options & CC2538RF_OPT_USE_SRC_PAN) {
         DEBUG("cc2538rf: using src pan\n");
@@ -685,7 +691,7 @@ const gnrc_netdev_driver_t cc2538rf_driver = {
 //in sense of riot yet
 int cc2538rf_init(cc2538rf_t *dev)
 {
-  DEBUG("cc2538rf: Init\n");
+  DEBUG("cc2538rf: Init new\n");
 
   DEBUG("cc2538rf: checking if CSP is runngin or idle: \n");
   if((uint8_t)RFCORE_XREG_CSPSTAT & CC2538RF_CSP_RUNNING){

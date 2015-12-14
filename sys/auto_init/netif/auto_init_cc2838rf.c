@@ -43,7 +43,7 @@ static cc2538rf_t cc2538rf_dev;
 
 void auto_init_cc2538rf(void)
 {
-    DEBUG("auto init cc2538rf: doing auto init\n");
+    DEBUG("auto init cc2538rf: doing auto init new\n");
 
     cc2538rf_init(&cc2538rf_dev);
 
