@@ -23,6 +23,7 @@
 #include "byteorder.h"
 #include "net/ieee802154.h"
 #include "net/gnrc.h"
+#include "net/netdev2.h"
 #include "cc2538rf.h"
 
 #define ENABLE_DEBUG (1)
@@ -54,7 +55,6 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
     int pos = 0;
 
     /* we are building a data frame here */
-    DEBUG("cc2538rf mac address: building data frame\n");
     buf[0] = IEEE802154_FCF_TYPE_DATA;
     buf[1] = IEEE802154_FCF_VERS_V1;
 
@@ -73,20 +73,17 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
     /* fill in destination address */
     if (hdr->flags &
         (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
-        DEBUG("cc2538rf: its a broadcast\n");
         buf[1] |= IEEE802154_FCF_DST_ADDR_SHORT;
         buf[pos++] = 0xff;
         buf[pos++] = 0xff;
     }
     else if (hdr->dst_l2addr_len == 2) {
-        DEBUG("cc2538rf mac header: using short dst address\n");
         uint8_t *dst_addr = gnrc_netif_hdr_get_dst_addr(hdr);
         buf[1] |= IEEE802154_FCF_DST_ADDR_SHORT;
         buf[pos++] = dst_addr[1];
         buf[pos++] = dst_addr[0];
     }
     else if (hdr->dst_l2addr_len == 8) {
-        DEBUG("cc2538rf mac header: using long dst address\n");
         buf[1] |= IEEE802154_FCF_DST_ADDR_LONG;
         uint8_t *dst_addr = gnrc_netif_hdr_get_dst_addr(hdr);
         for (int i = 7;  i >= 0; i--) {
@@ -99,7 +96,6 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
         return 0;
     }
 
-    DEBUG("cc2538rf: checkpoint\n");
     /* fill in source PAN ID (if applicable) */
     if (dev->options & CC2538RF_OPT_USE_SRC_PAN) {
         DEBUG("cc2538rf: using src pan\n");
@@ -235,7 +231,8 @@ static gnrc_pktsnip_t *_make_netif_hdr(uint8_t *mhr)
 }
 #endif
 
-//TODO: not implemented yet
+//TODO: not finished yet, also need outsourcing into other methods
+//otherwise it looks too full
 static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
@@ -356,7 +353,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     //TODO: prepare package for sending and send over fifo of cc2538rf
 
 
-    DEBUG("cc2538rf: putting macheader + payload_length+2 into RFDATA register\n");
+    DEBUG("cc2538rf: putting mac_header + payload_length+2 into RFDATA register\n");
     RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
 
     DEBUG("cc2538rf: putting stuff into the RFDATA register\n");
@@ -377,14 +374,20 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     //send transmit opcode to csp
     dev->state = NETOPT_STATE_TX;
     DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISTXONCCA;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
 
     //check current csp instruction
     uint8_t currentCSP = (uint8_t) RFCORE_SFR_RFST;
     DEBUG("cc2538rf: current CSP instruction OPCODE: %x\n", currentCSP);
 
+    DEBUG("cc2538rf: amount currently in the TX FIFO after send: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
 
-/*
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+
+    DEBUG("cc2538rf: amount currently in the TX FIFO after flush: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
+
+/*  not sure if needed, but stall program until everything has been sent
   int counter = 0;
   while(!((RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE))
         && (counter++ < 3)) {
@@ -686,6 +689,16 @@ const gnrc_netdev_driver_t cc2538rf_driver = {
     .isr_event = _isr_event,
 };
 
+/*
+const netdev2_driver_t cc2538rf_driver_netdev2 = {
+    .send = _send,
+    .recv = _receive,
+    .init = cc2538rf_init,
+    .get = _get,
+    .set = _set,
+    .isr = _isr_event,
+};
+*/
 
 //TODO check with contiki and stuff also device not fully initialized
 //in sense of riot yet
@@ -766,6 +779,10 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 #endif
 
 
+  //set seq number
+  dev->seq_nr = 0;
+
+
   //enable fifop interrupts
   RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
 
@@ -795,41 +812,48 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 void cc2538rf_reset(cc2538rf_t *dev)
 {
 
-    DEBUG("cc2538rf_reset(): reset complete.\n");
+    DEBUG("cc2538rf_reset(): reset not implemented yet.\n");
 }
 
 bool cc2538rf_cca(cc2538rf_t *dev)
 {
+  DEBUG("cc2538rf_cca(): reset not implemented yet.\n");
   return false;
 }
 
 size_t cc2538rf_send(cc2538rf_t *dev, uint8_t *data, size_t len)
 {
+  DEBUG("cc2538rf_send(): reset not implemented yet.\n");
   return -1;
 }
 
 void cc2538rf_tx_prepare(cc2538rf_t *dev)
 {
+  DEBUG("cc2538rf_tx_prepare(): reset not implemented yet.\n");
 }
 
 size_t cc2538rf_tx_load(cc2538rf_t *dev, uint8_t *data,
                          size_t len, size_t offset)
 {
+  DEBUG("cc2538rf_tx_load(): reset not implemented yet.\n");
   return 0;
 }
 
 void cc2538rf_tx_exec(cc2538rf_t *dev)
 {
+  DEBUG("cc2538rf_tx_exec(): reset not implemented yet.\n");
 }
 
 size_t cc2538rf_rx_len(cc2538rf_t *dev)
 {
+  DEBUG("cc2538rf_rx_len(): reset not implemented yet.\n");
   return 0;
 }
 
 void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,
                        size_t offset)
 {
+  DEBUG("cc2538rf_rx_read(): reset not implemented yet.\n");
 }
 
 
