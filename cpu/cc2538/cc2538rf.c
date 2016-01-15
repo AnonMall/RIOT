@@ -56,12 +56,13 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
 
     /* we are building a data frame here */
     buf[0] = IEEE802154_FCF_TYPE_DATA;
-    buf[1] = IEEE802154_FCF_VERS_V1;
+    buf[1] = IEEE802154_FCF_VERS_V0;
 
     /* if AUTOACK is enabled, then we also expect ACKs for this packet */
     if (!(hdr->flags & GNRC_NETIF_HDR_FLAGS_BROADCAST) &&
         !(hdr->flags & GNRC_NETIF_HDR_FLAGS_MULTICAST) &&
         (dev->options & CC2538_RF_AUTOACK)) {
+        DEBUG("cc23538rf: autoack enabled\n");
         buf[0] |= IEEE802154_FCF_ACK_REQ;
     }
 
@@ -73,6 +74,7 @@ static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
     /* fill in destination address */
     if (hdr->flags &
         (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
+        DEBUG("cc23538rf: its a broadcast/multicast\n");
         buf[1] |= IEEE802154_FCF_DST_ADDR_SHORT;
         buf[pos++] = 0xff;
         buf[pos++] = 0xff;
@@ -248,6 +250,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     cc2538rf_t *dev = (cc2538rf_t *)netdev;
     gnrc_pktsnip_t *snip;
     uint8_t mhr[IEEE802154_MAX_HDR_LEN];
+    memset(mhr, 0, IEEE802154_MAX_HDR_LEN);
     size_t len;
 
 
@@ -257,7 +260,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
     len = _make_data_frame_hdr(dev, mhr, (gnrc_netif_hdr_t *)pkt->data);
-    for(int i = 0; i<IEEE802154_MAX_HDR_LEN; i++){
+    for(int i = 0; i<len; i++){
       DEBUG("0x%x ", mhr[i]);
     }
         DEBUG("\n");
