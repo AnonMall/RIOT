@@ -25,6 +25,7 @@
 #include "net/gnrc.h"
 #include "net/netdev2.h"
 #include "cc2538rf.h"
+#include "nvic.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -265,6 +266,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     }
         DEBUG("\n");
 
+#if 0
       uint8_t *data;
       gnrc_pktsnip_t *current = pkt;
       while(current){
@@ -320,6 +322,8 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
         current = current->next;
       }
 
+#endif
+
 
     if (dev == NULL) {
         gnrc_pktbuf_release(pkt);
@@ -355,11 +359,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
     //TODO: prepare package for sending and send over fifo of cc2538rf
 
-    //uint8_t macHeader[13] = {0x41, 0xc8, 0x00, 0x77, 0x07, 0xff, 0xff, 0x01, 0x00, 0xfe, 0xca, 0xfe, 0xca};
-
-    //len = 13;
-
-
 
     DEBUG("cc2538rf: putting mac_header + payload_length+2 into RFDATA register\n");
     RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
@@ -369,14 +368,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     for(int i = 0; i<len; i++){
       RFCORE_SFR_RFDATA = mhr[i];
     }
-
-
-    /*
-    DEBUG("cc2538rf: sending static macheader\n");
-    for(int i = 0; i<13; i++){
-    RFCORE_SFR_RFDATA = macHeader[i];
-    }
-    */
 
     while(snip){
         for(int i = 0; i< snip->size; i++){
@@ -418,14 +409,13 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
   }
 */
 
-#if ENABLE_DEBUG
 
     while(RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE )
       DEBUG("cc2538rf: Still Sending\n");
 
       DEBUG("cc2538rf: sending complete\n");
 
-#endif
+      dev->event_cb(NETDEV_EVENT_TX_COMPLETE, NULL);
 
 
 
@@ -457,7 +447,15 @@ static int _rem_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
 {
 
   DEBUG("cc2538rf: removing event cb:\n");
-    return -1;
+  if (dev == NULL) {
+      return -ENODEV;
+  }
+  if (dev->event_cb != cb) {
+      return -ENOENT;
+  }
+
+  dev->event_cb = NULL;
+  return 0;
 }
 
 //TODO: not implemented yet
@@ -472,6 +470,7 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
 
     cc2538rf_t *dev = (cc2538rf_t *) device;
 
+/*
     switch (opt) {
         case NETOPT_CHANNEL:
             if (max_len < sizeof(uint16_t)) {
@@ -484,7 +483,7 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
         default:
             break;
     }
-
+*/
 
     switch (opt) {
 
@@ -707,6 +706,7 @@ static int _set(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)
 //TODO: not implemented yet
 static void _isr_event(gnrc_netdev_t *device, uint32_t event_type)
 {
+  DEBUG("cc2538rf: isr event has been called\n");
 }
 
 
@@ -815,6 +815,11 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
   //enable fifop interrupts
   RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
+  nvic_interrupt_enable(NVIC_INT_RF_RXTX);
+
+  /* Acknowledge all RF Error interrupts */
+  RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
+  nvic_interrupt_enable(NVIC_INT_RF_ERR);
 
   //setting up calibration register
   RFCORE_XREG_TXFILTCFG = 0x09; /* TX anti-aliasing filter */
@@ -835,6 +840,11 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
   dev->state = NETOPT_STATE_IDLE;
 
   //ENERGEST_ON(ENERGEST_TYPE_LISTEN);
+
+
+  //put RF into RX mode
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
+
 
     return 0;
 }
