@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     drivers_cc2538rf
+ * @ingroup     cc2538
  * @{
  *
  * @file
@@ -355,9 +355,9 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
     //TODO: prepare package for sending and send over fifo of cc2538rf
 
-    uint8_t macHeader[13] = {0x41, 0xc8, 0x00, 0x77, 0x07, 0xff, 0xff, 0x01, 0x00, 0xfe, 0xca, 0xfe, 0xca};
+    //uint8_t macHeader[13] = {0x41, 0xc8, 0x00, 0x77, 0x07, 0xff, 0xff, 0x01, 0x00, 0xfe, 0xca, 0xfe, 0xca};
 
-    len = 13;
+    //len = 13;
 
 
 
@@ -365,16 +365,18 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
 
     DEBUG("cc2538rf: putting stuff into the RFDATA register\n");
-    /*
+
     for(int i = 0; i<len; i++){
       RFCORE_SFR_RFDATA = mhr[i];
     }
-    */
 
+
+    /*
     DEBUG("cc2538rf: sending static macheader\n");
     for(int i = 0; i<13; i++){
     RFCORE_SFR_RFDATA = macHeader[i];
     }
+    */
 
     while(snip){
         for(int i = 0; i< snip->size; i++){
