@@ -33,7 +33,6 @@
  * @{
  */
 
-
 #define CC2538RF_MAC_STACKSIZE     (THREAD_STACKSIZE_DEFAULT)
 #define CC2538RF_MAC_PRIO          (THREAD_PRIORITY_MAIN - 4)
 //#define CC2538RF_NUM (sizeof(cc2538rf_params)/sizeof(cc2538rf_params[0]))
