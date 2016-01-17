@@ -284,6 +284,8 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
           case GNRC_NETTYPE_SIXLOWPAN:
+            DEBUG("PKT Type is GNRC_NETTYPE_SIXLOWPAN  ");
+            break;
 
           case GNRC_NETTYPE_IPV6:
             DEBUG("PKT Type is GNRC_NETTYPE_IPV6  ");
@@ -337,8 +339,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
         return -ENOMSG;
     }
 
-    //dont forget to change
-    //len = 13;
+
 
     /* check if packet (header + payload + FCS) fits into FIFO */
     snip = pkt->next;
@@ -358,19 +359,11 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     DEBUG("cc2538rf: putting mac_header + payload_length+2 into RFDATA register\n");
     RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
 
-    //uint8_t macHeader[13] = {0x41, 0xc8, 0x00, 0x77, 0x07, 0xff, 0xff, 0x01, 0x00, 0xfe, 0xca, 0xfe, 0xca};
-
     DEBUG("cc2538rf: putting stuff into the RFDATA register\n");
-
     for(int i = 0; i<len; i++){
       RFCORE_SFR_RFDATA = mhr[i];
     }
 
-    /*
-    for(int i = 0; i<13; i++){
-      RFCORE_SFR_RFDATA = macHeader[i];
-    }
-    */
     while(snip){
         for(int i = 0; i< snip->size; i++){
           RFCORE_SFR_RFDATA = ((uint8_t*)(snip->data))[i];
@@ -877,9 +870,6 @@ void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,
 
 uint8_t cc2538rf_get_chan(cc2538rf_t *dev)
 {
-  uint8_t chan = (RFCORE_XREG_FREQCTRL & 0x3f);
-  chan = ((chan+44)/5);
-  DEBUG("cc2538rf_get_chan: current channel from register = %u\n", chan ) ;
   return dev->chan;
 }
 
@@ -887,9 +877,7 @@ uint8_t cc2538rf_get_chan(cc2538rf_t *dev)
 void cc2538rf_set_chan(cc2538rf_t *dev, uint8_t chan)
 {
   uint8_t regChannel = 11+(5*(chan-11));
-  DEBUG("cc2538rf_set_chan: chanel is set to: %u\n", regChannel);
   RFCORE_XREG_FREQCTRL = regChannel;
-  DEBUG("cc2538rf_set_chan: register says its: %u\n", (uint8_t)RFCORE_XREG_FREQCTRL);
   dev->chan = chan;
 
 }

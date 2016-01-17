@@ -52,7 +52,7 @@ extern "C" {
 #define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
 #define CC2538RF_TX_POWER                     (0xD5) /* ToDo: Determine value */
 #define CC2538RF_DEFAULT_CHANNEL              (15) /** CC2538rf default channel */
-#define CC2538RF_DEFAULT_PANID                (0x777) /** CC2538rf PAN ID */
+#define CC2538RF_DEFAULT_PANID                (777) /** CC2538rf PAN ID */
 #define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - TX states */
 #define RFCORE_XREG_RFIRQM0_FIFOP             (0x04) /**< RX FIFO exceeded threshold */
 #define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
