@@ -428,7 +428,15 @@ return -1;
 static int _add_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
 {
   DEBUG("cc2538rf: adding event cb:\n");
-    return -1;
+    if (dev == NULL) {
+        return -ENODEV;
+    }
+    if (dev->event_cb) {
+        return -ENOBUFS;
+    }
+
+    dev->event_cb = cb;
+    return 0;
 }
 
 
