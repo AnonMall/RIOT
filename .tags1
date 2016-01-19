@@ -1,0 +1,41 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	0	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ENABLE_DEBUG	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define ENABLE_DEBUG /;"	macro	line:31	file:
+UDMA_ENABLED	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define UDMA_ENABLED /;"	macro	line:34	file:
+CHECKSUM_LEN	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define CHECKSUM_LEN /;"	macro	line:35	file:
+RX_ACTIVE	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RX_ACTIVE /;"	macro	line:41	file:
+RF_MUST_RESET	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RF_MUST_RESET /;"	macro	line:42	file:
+RF_ON	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RF_ON /;"	macro	line:43	file:
+_MAX_MHR_OVERHEAD	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define _MAX_MHR_OVERHEAD /;"	macro	line:46	file:
+RESET_DELAY	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RESET_DELAY /;"	macro	line:48	file:
+_make_data_frame_hdr	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,$/;"	function	line:50	file:	signature:(cc2538rf_t *dev, uint8_t *buf, gnrc_netif_hdr_t *hdr)
+_send	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){$/;"	function	line:240	file:	signature:(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt)
+_add_event_cb	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _add_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)$/;"	function	line:431	file:	signature:(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
+_rem_event_cb	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _rem_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)$/;"	function	line:447	file:	signature:(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
+_get	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)$/;"	function	line:463	file:	signature:(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
+_set	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _set(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)$/;"	function	line:645	file:	signature:(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)
+_isr_event	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static void _isr_event(gnrc_netdev_t *device, uint32_t event_type)$/;"	function	line:708	file:	signature:(gnrc_netdev_t *device, uint32_t event_type)
+cc2538rf_driver	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^const gnrc_netdev_driver_t cc2538rf_driver = {$/;"	variable	line:714
+cc2538rf_init	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^int cc2538rf_init(cc2538rf_t *dev)$/;"	function	line:737	signature:(cc2538rf_t *dev)
+cc2538rf_reset	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_reset(cc2538rf_t *dev)$/;"	function	line:864	signature:(cc2538rf_t *dev)
+cc2538rf_cca	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^bool cc2538rf_cca(cc2538rf_t *dev)$/;"	function	line:870	signature:(cc2538rf_t *dev)
+cc2538rf_send	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^size_t cc2538rf_send(cc2538rf_t *dev, uint8_t *data, size_t len)$/;"	function	line:876	signature:(cc2538rf_t *dev, uint8_t *data, size_t len)
+cc2538rf_tx_prepare	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_tx_prepare(cc2538rf_t *dev)$/;"	function	line:882	signature:(cc2538rf_t *dev)
+cc2538rf_tx_load	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^size_t cc2538rf_tx_load(cc2538rf_t *dev, uint8_t *data,$/;"	function	line:887	signature:(cc2538rf_t *dev, uint8_t *data, size_t len, size_t offset)
+cc2538rf_tx_exec	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_tx_exec(cc2538rf_t *dev)$/;"	function	line:894	signature:(cc2538rf_t *dev)
+cc2538rf_rx_len	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^size_t cc2538rf_rx_len(cc2538rf_t *dev)$/;"	function	line:899	signature:(cc2538rf_t *dev)
+cc2538rf_rx_read	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,$/;"	function	line:905	signature:(cc2538rf_t *dev, uint8_t *data, size_t len, size_t offset)
+cc2538rf_get_chan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint8_t cc2538rf_get_chan(cc2538rf_t *dev)$/;"	function	line:912	signature:(cc2538rf_t *dev)
+cc2538rf_set_chan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_chan(cc2538rf_t *dev, uint8_t chan)$/;"	function	line:918	signature:(cc2538rf_t *dev, uint8_t chan)
+cc2538rf_set_addr_long	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_addr_long(cc2538rf_t *dev, uint64_t addr)$/;"	function	line:926	signature:(cc2538rf_t *dev, uint64_t addr)
+cc2538rf_get_addr_long	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint64_t cc2538rf_get_addr_long(cc2538rf_t *dev)$/;"	function	line:948	signature:(cc2538rf_t *dev)
+cc2538rf_set_addr_short	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_addr_short(cc2538rf_t *dev, uint16_t addr)$/;"	function	line:959	signature:(cc2538rf_t *dev, uint16_t addr)
+cc2538rf_get_addr_short	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint16_t cc2538rf_get_addr_short(cc2538rf_t *dev)$/;"	function	line:970	signature:(cc2538rf_t *dev)
+cc2538rf_set_pan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_pan(cc2538rf_t *dev, uint16_t pan)$/;"	function	line:977	signature:(cc2538rf_t *dev, uint16_t pan)
+cc2538rf_get_pan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint16_t cc2538rf_get_pan(cc2538rf_t *dev)$/;"	function	line:986	signature:(cc2538rf_t *dev)
+isr_rfcoretx	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void isr_rfcoretx(void)$/;"	function	line:993	signature:(void)
+isr_rfcoreerr	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void isr_rfcoreerr(void)$/;"	function	line:998	signature:(void)

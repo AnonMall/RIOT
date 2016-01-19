@@ -17,7 +17,7 @@
  * @author  Anon Mall <anon.mall@dai-labor.de>
  */
 
-#ifdef MODULE_CC2538RF
+#ifdef BOARD_OPENMOTE
 
 #include "board.h"
 #include "net/gnrc/nomac.h"

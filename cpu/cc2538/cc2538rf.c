@@ -24,8 +24,9 @@
 #include "net/ieee802154.h"
 #include "net/gnrc.h"
 #include "net/netdev2.h"
+#include "core_cm3.h"
 #include "cc2538rf.h"
-#include "nvic.h"
+#include "cc2538.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -730,6 +731,7 @@ const netdev2_driver_t cc2538rf_driver_netdev2 = {
 };
 */
 
+
 //TODO check with contiki and stuff also device not fully initialized
 //in sense of riot yet
 int cc2538rf_init(cc2538rf_t *dev)
@@ -815,11 +817,21 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
   //enable fifop interrupts
   RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
-  nvic_interrupt_enable(NVIC_INT_RF_RXTX);
+  //enable interrupt when tx is done
+  RFCORE_XREG_RFIRQM1 |= 0x2;
+  //enable intterupt when rf is idle
+  RFCORE_XREG_RFIRQM1 |= 0x4;
+  //enable all interrupts for test purpose
+  RFCORE_XREG_RFIRQM1 |= 0b111111;
+  RFCORE_XREG_RFIRQM0 |= 0b111111;
+
+  //enable interrupt in table for TX/RX
+  NVIC_EnableIRQ(RF_RXTX_IRQn);
+  //enable interrupt in table for TX/RX Error
+  NVIC_EnableIRQ(RF_ERR_IRQn);
 
   /* Acknowledge all RF Error interrupts */
   RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
-  nvic_interrupt_enable(NVIC_INT_RF_ERR);
 
   //setting up calibration register
   RFCORE_XREG_TXFILTCFG = 0x09; /* TX anti-aliasing filter */
@@ -843,7 +855,7 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
 
   //put RF into RX mode
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
+  RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
 
 
     return 0;
@@ -974,4 +986,16 @@ void cc2538rf_set_pan(cc2538rf_t *dev, uint16_t pan)
 uint16_t cc2538rf_get_pan(cc2538rf_t *dev)
 {
   return dev->pan;
+}
+
+
+
+void isr_rfcoretx(void)
+{
+  DEBUG("\n\ncc2538rf: GOT INTERRUPT RFCORE\n\n");
+}
+
+void isr_rfcoreerr(void)
+{
+  DEBUG("\n\ncc2538rf: GOT INTERRUPT ERROR\n\n");
 }

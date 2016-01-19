@@ -164,7 +164,6 @@ void auto_init(void)
 #endif
 
 #ifdef BOARD_OPENMOTE
-    DEBUG("auto init openmote\n");
     extern void auto_init_cc2538rf(void);
     auto_init_cc2538rf();
 #endif

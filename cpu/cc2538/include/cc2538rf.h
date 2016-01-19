@@ -32,7 +32,6 @@
 #include "net/gnrc/netdev.h"
 #include "cc2538rf.h"
 #include "rfcore.h"
-#include "nvic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -437,6 +436,19 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev);
  */
 void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,
                        size_t offset);
+
+
+
+/**
+ * @brief  Interrupt handler for RX/TX Interrupts
+ */
+//void cc2538rf_isr_rfcoretx_handler(void);
+
+
+/**
+ * @brief interrupt handler
+ */
+//void isr_rfcoretx(void);
 
 #ifdef __cplusplus
 }

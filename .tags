@@ -1,0 +1,95 @@
+CC2538RF_H_	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_H_$/;"	macro	line:25
+CC2538_RF_AUTOACK	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_AUTOACK /;"	macro	line:42
+CC2538_RF_AUTOACK	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_AUTOACK /;"	macro	line:44
+CC2538RF_CCA_THRES	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_CCA_THRES /;"	macro	line:47
+RFCORE_XREG_FRMCTRL0_AUTOCRC	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define RFCORE_XREG_FRMCTRL0_AUTOCRC /;"	macro	line:48
+RFCORE_XREG_FRMCTRL0_AUTOACK	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define RFCORE_XREG_FRMCTRL0_AUTOACK /;"	macro	line:49
+RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN /;"	macro	line:50
+CC2538RF_MAX_PACKET_LEN	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_MAX_PACKET_LEN /;"	macro	line:51
+CC2538RF_TX_POWER	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_TX_POWER /;"	macro	line:52
+CC2538RF_DEFAULT_CHANNEL	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_DEFAULT_CHANNEL /;"	macro	line:53
+CC2538RF_DEFAULT_PANID	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_DEFAULT_PANID /;"	macro	line:54
+RFCORE_XREG_FSMSTAT1_TX_ACTIVE	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define RFCORE_XREG_FSMSTAT1_TX_ACTIVE /;"	macro	line:55
+RFCORE_XREG_RFIRQM0_FIFOP	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define RFCORE_XREG_RFIRQM0_FIFOP /;"	macro	line:56
+IEEE_ADDR_LOCATION_PRIMARY	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define IEEE_ADDR_LOCATION_PRIMARY /;"	macro	line:57
+IEEE_ADDR_LOCATION_SECONDARY	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define IEEE_ADDR_LOCATION_SECONDARY /;"	macro	line:58
+CC2538RF_OPT_AUTOACK	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_AUTOACK /;"	macro	line:64
+CC2538RFRF2XX_OPT_CSMA	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RFRF2XX_OPT_CSMA /;"	macro	line:65
+CC2538RF_OPT_PROMISCUOUS	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_PROMISCUOUS /;"	macro	line:66
+CC2538RF_OPT_PRELOADING	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_PRELOADING /;"	macro	line:68
+CC2538RF_OPT_TELL_TX_START	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_TELL_TX_START /;"	macro	line:69
+CC2538RF_OPT_TELL_TX_END	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_TELL_TX_END /;"	macro	line:71
+CC2538RF_OPT_TELL_RX_START	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_TELL_RX_START /;"	macro	line:73
+CC2538RF_OPT_TELL_RX_END	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_TELL_RX_END /;"	macro	line:75
+CC2538RF_OPT_RAWDUMP	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_RAWDUMP /;"	macro	line:77
+CC2538RF_OPT_SRC_ADDR_LONG	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_SRC_ADDR_LONG /;"	macro	line:79
+CC2538RF_OPT_USE_SRC_PAN	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_OPT_USE_SRC_PAN /;"	macro	line:81
+CC2538_RF_CSP_OP_ISRXON	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISRXON /;"	macro	line:86
+CC2538_RF_CSP_OP_ISTXON	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISTXON /;"	macro	line:87
+CC2538_RF_CSP_OP_ISTXONCCA	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISTXONCCA /;"	macro	line:88
+CC2538_RF_CSP_OP_ISRFOFF	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISRFOFF /;"	macro	line:89
+CC2538_RF_CSP_OP_ISFLUSHRX	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISFLUSHRX /;"	macro	line:90
+CC2538_RF_CSP_OP_ISFLUSHTX	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISFLUSHTX /;"	macro	line:91
+CC2538_RF_CSP_OP_ISCLEAR	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISCLEAR /;"	macro	line:92
+CC2538_RF_CSP_OP_ISSTART	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538_RF_CSP_OP_ISSTART /;"	macro	line:93
+CC2538RF_CSP_RUNNING	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_CSP_RUNNING /;"	macro	line:97
+CC2538RF_CHANNEL_MIN	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_CHANNEL_MIN /;"	macro	line:101
+CC2538RF_CHANNEL_MAX	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_CHANNEL_MAX /;"	macro	line:102
+CC2538RF_CHANNEL_SPACING	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^#define CC2538RF_CHANNEL_SPACING /;"	macro	line:103
+CC2538RF_FREQ_915MHZ	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    CC2538RF_FREQ_915MHZ,       \/**< frequency 915MHz enabled *\/$/;"	enumerator	line:106	enum:__anon1
+CC2538RF_FREQ_868MHZ	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    CC2538RF_FREQ_868MHZ,       \/**< frequency 868MHz enabled *\/$/;"	enumerator	line:107	enum:__anon1
+cc2538rf_freq_t	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^} cc2538rf_freq_t;$/;"	typedef	line:108	typeref:enum:__anon1
+driver	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    const gnrc_netdev_driver_t *driver; \/**< pointer to the devices interface *\/$/;"	member	line:115	struct:__anon2
+event_cb	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    gnrc_netdev_event_cb_t event_cb;    \/**< netdev event callback *\/$/;"	member	line:116	struct:__anon2
+mac_pid	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    kernel_pid_t mac_pid;               \/**< the driver's thread's PID *\/$/;"	member	line:117	struct:__anon2
+proto	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    gnrc_nettype_t proto;               \/**< protocol the radio expects *\/$/;"	member	line:118	struct:__anon2
+state	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t state;                      \/**< current state of the radio *\/$/;"	member	line:119	struct:__anon2
+seq_nr	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t seq_nr;                     \/**< sequence number to use next *\/$/;"	member	line:120	struct:__anon2
+frame_len	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t frame_len;                  \/**< length of the current TX frame *\/$/;"	member	line:121	struct:__anon2
+pan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint16_t pan;                       \/**< currently used PAN ID *\/$/;"	member	line:122	struct:__anon2
+chan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t chan;                       \/**< currently used channel *\/$/;"	member	line:123	struct:__anon2
+addr_short	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t addr_short[2];              \/**< the radio's short address *\/$/;"	member	line:124	struct:__anon2
+addr_long	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t addr_long[8];               \/**< the radio's long address *\/$/;"	member	line:125	struct:__anon2
+options	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint16_t options;                   \/**< state of used options *\/$/;"	member	line:126	struct:__anon2
+idle_state	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^    uint8_t idle_state;                 \/**< state to return to after sending *\/$/;"	member	line:127	struct:__anon2
+cc2538rf_t	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^} cc2538rf_t;$/;"	typedef	line:128	typeref:struct:__anon2
+cc2538rf_params	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^typedef struct cc2538rf_params {$/;"	struct	line:133
+cc2538rf_params_t	/home/anon/Developement/workspace/RIOT/cpu/cc2538/include/cc2538rf.h	/^} cc2538rf_params_t;$/;"	typedef	line:140	typeref:struct:cc2538rf_params
+dummy_handler	/home/anon/Developement/workspace/RIOT/cpu/cc2538/vectors.c	/^void dummy_handler(void) {$/;"	function	line:30	signature:(void)
+interrupt_vector	/home/anon/Developement/workspace/RIOT/cpu/cc2538/vectors.c	/^ISR_VECTORS const void *interrupt_vector[] = {$/;"	variable	line:72
+cca	/home/anon/Developement/workspace/RIOT/cpu/cc2538/vectors.c	/^const uint32_t cca[] = {$/;"	variable	line:151
+ENABLE_DEBUG	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define ENABLE_DEBUG /;"	macro	line:31	file:
+UDMA_ENABLED	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define UDMA_ENABLED /;"	macro	line:34	file:
+CHECKSUM_LEN	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define CHECKSUM_LEN /;"	macro	line:35	file:
+RX_ACTIVE	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RX_ACTIVE /;"	macro	line:41	file:
+RF_MUST_RESET	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RF_MUST_RESET /;"	macro	line:42	file:
+RF_ON	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RF_ON /;"	macro	line:43	file:
+_MAX_MHR_OVERHEAD	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define _MAX_MHR_OVERHEAD /;"	macro	line:46	file:
+RESET_DELAY	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^#define RESET_DELAY /;"	macro	line:48	file:
+_make_data_frame_hdr	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,$/;"	function	line:50	file:	signature:(cc2538rf_t *dev, uint8_t *buf, gnrc_netif_hdr_t *hdr)
+_send	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){$/;"	function	line:240	file:	signature:(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt)
+_add_event_cb	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _add_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)$/;"	function	line:431	file:	signature:(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
+_rem_event_cb	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _rem_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)$/;"	function	line:447	file:	signature:(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
+_get	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)$/;"	function	line:463	file:	signature:(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
+_set	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static int _set(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)$/;"	function	line:645	file:	signature:(gnrc_netdev_t *device, netopt_t opt, void *val, size_t len)
+_isr_event	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^static void _isr_event(gnrc_netdev_t *device, uint32_t event_type)$/;"	function	line:708	file:	signature:(gnrc_netdev_t *device, uint32_t event_type)
+cc2538rf_driver	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^const gnrc_netdev_driver_t cc2538rf_driver = {$/;"	variable	line:714
+cc2538rf_init	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^int cc2538rf_init(cc2538rf_t *dev)$/;"	function	line:737	signature:(cc2538rf_t *dev)
+cc2538rf_reset	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_reset(cc2538rf_t *dev)$/;"	function	line:864	signature:(cc2538rf_t *dev)
+cc2538rf_cca	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^bool cc2538rf_cca(cc2538rf_t *dev)$/;"	function	line:870	signature:(cc2538rf_t *dev)
+cc2538rf_send	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^size_t cc2538rf_send(cc2538rf_t *dev, uint8_t *data, size_t len)$/;"	function	line:876	signature:(cc2538rf_t *dev, uint8_t *data, size_t len)
+cc2538rf_tx_prepare	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_tx_prepare(cc2538rf_t *dev)$/;"	function	line:882	signature:(cc2538rf_t *dev)
+cc2538rf_tx_load	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^size_t cc2538rf_tx_load(cc2538rf_t *dev, uint8_t *data,$/;"	function	line:887	signature:(cc2538rf_t *dev, uint8_t *data, size_t len, size_t offset)
+cc2538rf_tx_exec	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_tx_exec(cc2538rf_t *dev)$/;"	function	line:894	signature:(cc2538rf_t *dev)
+cc2538rf_rx_len	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^size_t cc2538rf_rx_len(cc2538rf_t *dev)$/;"	function	line:899	signature:(cc2538rf_t *dev)
+cc2538rf_rx_read	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,$/;"	function	line:905	signature:(cc2538rf_t *dev, uint8_t *data, size_t len, size_t offset)
+cc2538rf_get_chan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint8_t cc2538rf_get_chan(cc2538rf_t *dev)$/;"	function	line:912	signature:(cc2538rf_t *dev)
+cc2538rf_set_chan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_chan(cc2538rf_t *dev, uint8_t chan)$/;"	function	line:918	signature:(cc2538rf_t *dev, uint8_t chan)
+cc2538rf_set_addr_long	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_addr_long(cc2538rf_t *dev, uint64_t addr)$/;"	function	line:926	signature:(cc2538rf_t *dev, uint64_t addr)
+cc2538rf_get_addr_long	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint64_t cc2538rf_get_addr_long(cc2538rf_t *dev)$/;"	function	line:948	signature:(cc2538rf_t *dev)
+cc2538rf_set_addr_short	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_addr_short(cc2538rf_t *dev, uint16_t addr)$/;"	function	line:959	signature:(cc2538rf_t *dev, uint16_t addr)
+cc2538rf_get_addr_short	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint16_t cc2538rf_get_addr_short(cc2538rf_t *dev)$/;"	function	line:970	signature:(cc2538rf_t *dev)
+cc2538rf_set_pan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void cc2538rf_set_pan(cc2538rf_t *dev, uint16_t pan)$/;"	function	line:977	signature:(cc2538rf_t *dev, uint16_t pan)
+cc2538rf_get_pan	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^uint16_t cc2538rf_get_pan(cc2538rf_t *dev)$/;"	function	line:986	signature:(cc2538rf_t *dev)
+isr_rfcoretx	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void isr_rfcoretx(void)$/;"	function	line:993	signature:(void)
+isr_rfcoreerr	/home/anon/Developement/workspace/RIOT/cpu/cc2538/cc2538rf.c	/^void isr_rfcoreerr(void)$/;"	function	line:998	signature:(void)
