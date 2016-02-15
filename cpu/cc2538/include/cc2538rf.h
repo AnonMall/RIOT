@@ -82,6 +82,43 @@ extern "C" {
                                                      *   PAN ID */
 /** @} */
 
+
+/**
+ * @brief   Flags for device internal states (see datasheet)
+ * @{
+ */
+#define CC2538RF_STATE_TRX_OFF      (0x08)     /**< idle */
+#define CC2538RF_STATE_PLL_ON       (0x09)     /**< ready to transmit */
+#define CC2538RF_STATE_SLEEP        (0x0f)     /**< sleep mode */
+#define CC2538RF_STATE_BUSY_RX_AACK (0x11)     /**< busy receiving data */
+#define CC2538RF_STATE_BUSY_TX_ARET (0x12)     /**< busy transmitting data */
+#define CC2538RF_STATE_RX_AACK_ON   (0x16)     /**< wait for incoming data */
+#define CC2538RF_STATE_TX_ARET_ON   (0x19)     /**< ready for sending data */
+#define CC2538RF_STATE_IN_PROGRESS  (0x1f)     /**< ongoing state conversion */
+/** @} */
+
+/**
+ * @brief   RF Interrupt FLAGS
+ * @{
+ */
+/* RFCORE_SFR_RFIRQF1 */
+#define CC2538RF_IRQFLAG_TXACKDONE   (0x0001)       /**< TX ACK DONE*/
+#define CC2538RF_IRQFLAG_TXDONE      (0x0002)       /**< TX DONE */
+#define CC2538RF_IRQFLAG_RFIDLE      (0x0004)       /**< RF IDLE */
+#define CC2538RF_IRQFLAG_CSPMANINT   (0x0008)       /**< CSP Manual Interrupt */
+#define CC2538RF_IRQFLAG_CSPSTOP     (0x0010)       /**< CSP Stop */
+#define CC2538RF_IRQFLAG_CSPWAIT     (0x0020)       /**< CSP Wait */
+
+/* RFCORE_SFR_RFIRQF0 */
+#define CC2538RF_IRQFLAG_SFD         (0x0001)       /**< SFD has been trans or recv */
+#define CC2538RF_IRQFLAG_FIFOP       (0x0002)       /**< FIFO Operation */
+#define CC2538RF_IRQFLAG_SRCMATDONE  (0x0004)       /**< Src Matching Done */
+#define CC2538RF_IRQFLAG_SRCMATFOUND (0x0008)       /**< Src Matching Found */
+#define CC2538RF_IRQFLAG_FRAMEACC    (0x0010)       /**< Frame Accepted */
+#define CC2538RF_IRQFLAG_RXPKTDONE   (0x0020)       /**< RX Paket Done */
+#define CC2538RF_IRQFLAG_RXMASKZERO  (0x0040)       /**< RXMASK has gone all zero */
+/** @} */
+
 /* CSP OPCODES */
 #define CC2538_RF_CSP_OP_ISRXON                0xE3
 #define CC2538_RF_CSP_OP_ISTXON                0xE9

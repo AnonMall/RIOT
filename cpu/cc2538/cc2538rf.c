@@ -47,6 +47,8 @@
 
 #define RESET_DELAY             (1U)        /* must be > 625ns */
 
+cc2538rf_t* device;
+
 static size_t _make_data_frame_hdr(cc2538rf_t *dev, uint8_t *buf,
                                    gnrc_netif_hdr_t *hdr)
 {
@@ -359,8 +361,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
     //TODO: prepare package for sending and send over fifo of cc2538rf
-
-
     DEBUG("cc2538rf: putting mac_header + payload_length+2 into RFDATA register\n");
     RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
 
@@ -378,17 +378,15 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     }
 
 
-
-
-
-
     //read how much is in the TX FIFO
     DEBUG("cc2538rf: amount currently in the TX FIFO: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
 
     //send transmit opcode to csp
     dev->state = NETOPT_STATE_TX;
     DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
+    //set SET_RXENMASK_ON_TX to switch on RX after TX finished
+    RFCORE->XREG_FRMCTRL1 |= 0x01;
+    RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
 
     //check current csp instruction
     uint8_t currentCSP = (uint8_t) RFCORE_SFR_RFST;
@@ -736,26 +734,44 @@ const netdev2_driver_t cc2538rf_driver_netdev2 = {
 //in sense of riot yet
 int cc2538rf_init(cc2538rf_t *dev)
 {
-  DEBUG("cc2538rf: Init new\n");
-
+  DEBUG("cc2538rf: Init\n");
+  #if DEBUG
   DEBUG("cc2538rf: checking if CSP is runngin or idle: \n");
-  if((uint8_t)RFCORE_XREG_CSPSTAT & CC2538RF_CSP_RUNNING){
+  if((uint8_t)RFCORE->XREG_CSPSTAT & CC2538RF_CSP_RUNNING){
     DEBUG("cc2538rf: CSP is runngin\n");
   }else{
     DEBUG("cc2538rf: CSP is idle\n");
   }
+  #endif
 
-  //setting clock for the rfcore
-  SYS_CTRL_RCGCRFC = 1;
-  SYS_CTRL_SCGCRFC = 1;
-  SYS_CTRL_DCGCRFC = 1;
+  //trying to reset whole rf in order not to reset the whole mote
+  DEBUG("cc2538rf_init: current RXENABLE: %u \n", (uint8_t)RFCORE->XREG_RXENABLE);
 
-  RFCORE_XREG_CCACTRL0 = CC2538RF_CCA_THRES;
 
+  device = dev;
   dev->driver = &cc2538rf_driver;
 
-  //setting up addresses
+  //setting device state to idle
+  dev->idle_state = NETOPT_STATE_IDLE;
+  //set seq number
+  dev->seq_nr = 0;
 
+  //setting clock for the rfcore
+  SYS_CTRL->RCGCRFC = 1;
+  SYS_CTRL->SCGCRFC = 1;
+  SYS_CTRL->DCGCRFC = 1;
+
+  //setting up calibration register (check with Register Settings Update from docu)
+  RFCORE->XREG_TXFILTCFG = 0x09; /* TX anti-aliasing filter */
+  RFCORE->XREG_AGCCTRL1 = 0x15;  /* AGC target value */
+  RFCORE->XREG_FSCAL1 = 0x01;    /* Reduce the VCO leakage */
+  ANA_REGS_IVCTRL = 0x0B;        /* Controls bias current */
+
+  //setting cca threshold
+  RFCORE->XREG_CCACTRL0 = CC2538RF_CCA_THRES;
+
+
+  //setting up addresses
   uint64_t longAddress;
   cpuid_get((void*)&longAddress);
   uint8_t* longToShortAddress = (uint8_t*) &longAddress;
@@ -811,44 +827,51 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 #endif
 
 
-  //set seq number
-  dev->seq_nr = 0;
 
 
+
+  DEBUG("cc2538rf_init: enabling interrupts\n");
+  //activating alternate Vector map
+  SYS_CTRL->I_MAP = 0x1;
+  DEBUG("cc2538rf_init: alternate interrupt table flag: %u\n", (uint8_t) SYS_CTRL_I_MAP);
   //enable fifop interrupts
-  RFCORE_XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
+  RFCORE->XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
   //enable interrupt when tx is done
-  RFCORE_XREG_RFIRQM1 |= 0x2;
+  RFCORE->XREG_RFIRQM1 |= 0x2;
+  //enable rx pkt done
+  //RFCORE_XREG_RFIRQM0 |= 0b1000000;
   //enable intterupt when rf is idle
-  RFCORE_XREG_RFIRQM1 |= 0x4;
+  //RFCORE_XREG_RFIRQM1 |= 0x4;
+
   //enable all interrupts for test purpose
-  RFCORE_XREG_RFIRQM1 |= 0b111111;
-  RFCORE_XREG_RFIRQM0 |= 0b111111;
+  //RFCORE_XREG_RFIRQM1 |= 0b111111;
+  //RFCORE_XREG_RFIRQM0 |= 0b111111;
+
 
   //enable interrupt in table for TX/RX
   NVIC_EnableIRQ(RF_RXTX_IRQn);
+
+  /* Acknowledge all RF Error interrupts */
+  RFCORE->XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
   //enable interrupt in table for TX/RX Error
   NVIC_EnableIRQ(RF_ERR_IRQn);
 
-  /* Acknowledge all RF Error interrupts */
-  RFCORE_XREG_RFERRM = RFCORE_XREG_RFERRM_RFERRM;
 
-  //setting up calibration register
-  RFCORE_XREG_TXFILTCFG = 0x09; /* TX anti-aliasing filter */
-  RFCORE_XREG_AGCCTRL1 = 0x15;  /* AGC target value */
-  RFCORE_XREG_FSCAL1 = 0x00;    /* Reduce the VCO leakage */
 
   //setting up AUTOCRC
-  RFCORE_XREG_FRMCTRL0 |= RFCORE_XREG_FRMCTRL0_AUTOCRC;
+  RFCORE->XREG_FRMCTRL0 |= RFCORE_XREG_FRMCTRL0_AUTOCRC;
 
   //disable source matching
-  RFCORE_XREG_SRCMATCH = 0;
+  RFCORE->XREG_SRCMATCH = 0;
 
   //Setup max fifo threshold
-  RFCORE_XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
+  RFCORE->XREG_FIFOPCTRL = CC2538RF_MAX_PACKET_LEN;
+
+  //disable frame filtering
+  RFCORE->XREG_FRMFILT0 &= ~0x01;
 
   //rf_flags |= RF_ON;
-  RFCORE_XREG_TXPOWER = CC2538RF_TX_POWER;
+  RFCORE->XREG_TXPOWER = CC2538RF_TX_POWER;
   dev->state = NETOPT_STATE_IDLE;
 
   //ENERGEST_ON(ENERGEST_TYPE_LISTEN);
@@ -856,6 +879,8 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
   //put RF into RX mode
   RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
+
+  DEBUG("cc2538rf_init: checking RXMASK: %u\n", (uint8_t)RFCORE_XREG_RXENABLE);
 
 
     return 0;
@@ -988,14 +1013,112 @@ uint16_t cc2538rf_get_pan(cc2538rf_t *dev)
   return dev->pan;
 }
 
+//Interrupt Handler for RFCORE Interrupts
+void handle_rfcoretxrx_isr(void)
+{
+
+  uint8_t irq0 = (uint8_t) RFCORE_SFR_RFIRQF0;
+  uint8_t irq1 = (uint8_t) RFCORE_SFR_RFIRQF1;
+  uint8_t fsmstat1 = (uint8_t) RFCORE->XREG_FSMSTAT1;
+
+  DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF0: 0x%x\n", irq0);
+  DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF1: 0x%x\n", irq1);
+  DEBUG("cc2538rf_rfcoreinterrupt: FSMSTAT1: 0x%x\n", fsmstat1);
+
+  //check fifo status
+  if(RFCORE->XREG_FSMSTAT1 & 0x40)
+  {
+    DEBUG("cc2538rf_rfcoreinterrupt: FIFO FSMSTAT1\n");
+  }
+
+  //parse for flags
+  if(irq1 & CC2538RF_IRQFLAG_TXDONE)
+  {
+    DEBUG("cc2538rf_rfcoreinterrupt: TX DONE\n");
+    RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXDONE;
+  }
+
+  if(irq0 & CC2538RF_IRQFLAG_FIFOP)
+  {
+    DEBUG("cc2538rf_rfcoreinterrupt: FIFO OP\n");
+    uint8_t rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
+    uint8_t txfifocnt = (uint8_t)RFCORE->XREG_TXFIFOCNT;
+    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
+    DEBUG("cc2538rf_rfcoreinterrupt: Current TXFIFOCNT: %u\n", txfifocnt);
+    if(irq0 & CC2538RF_IRQFLAG_RXPKTDONE){
+      uint8_t buffer[rxfifocnt];
+      int counter = 0;
+      if(rxfifocnt > 0){
+        DEBUG("cc2538rf_rfcoreinterrupt: Reading RX package: \n");
+        for(; counter<rxfifocnt; counter++){
+          buffer[counter] = (uint8_t) RFCORE->SFR_RFDATA;
+          DEBUG("0x%x ", buffer[counter]);
+        }
+        if(counter > 0){
+          RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+          RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+          DEBUG("\n");
+        }
+      }
+      RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_RXPKTDONE;
+    }
+    RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_FIFOP;
+  }
+
+  if(irq0 & CC2538RF_IRQFLAG_RXMASKZERO)
+  {
+    DEBUG("cc2538rf_rfcoreinterrupt: RX Disabled\n");
+    //RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
+    RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_RXMASKZERO;
+  }
 
 
+  DEBUG("\n");
+}
+
+//Entrypoint for RFCORE Interrupts on Vector 157
 void isr_rfcoretx(void)
 {
-  DEBUG("\n\ncc2538rf: GOT INTERRUPT RFCORE\n\n");
+  DEBUG("\n\ncc2538rf: GOT INTERRUPT RFCORE\n");
+  handle_rfcoretxrx_isr();
 }
+
+//Entrypoint for Alternative RFCORE Interrupts on Vector 42
+void isr_rfcoretx_alternate(void)
+{
+  DEBUG("\n\ncc2538rf: GOT INTERRUPT RFCORE ALTERNATE\n");
+  handle_rfcoretxrx_isr();
+}
+
+
+void isr_ssi1(void)
+{
+  DEBUG("\n\ncc2538rf: GOT INTERRUPT isr_ssil\n");
+}
+
 
 void isr_rfcoreerr(void)
 {
-  DEBUG("\n\ncc2538rf: GOT INTERRUPT ERROR\n\n");
+  DEBUG("\n\ncc2538rf: GOT INTERRUPT ERROR\n");
+  uint8_t rferror = RFCORE->SFR_RFERRF;
+  DEBUG("cc2538rf: RF ERROR: %x\n\n", rferror);
+  RFCORE->SFR_RFERRF = (uint8_t) 0x0;
+  DEBUG("cc2538rf: Resetting RF\n");
+
+  //Resetting Radio
+  //Wait for TX to end
+  while(RFCORE->XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE);
+
+  //Flush TX FIFO
+  RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+  RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+
+  //Checking if Radio is already off, otherwise we get a Strobe Error
+  if(RFCORE_XREG_RXENABLE != 0) {
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRFOFF;
+  }
+
+  //RFCORE_SFR_RFERRF = 0;
+  //cc2538rf_init(device);
+
 }
