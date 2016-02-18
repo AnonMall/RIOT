@@ -835,17 +835,12 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
   SYS_CTRL->I_MAP = 0x1;
   DEBUG("cc2538rf_init: alternate interrupt table flag: %u\n", (uint8_t) SYS_CTRL_I_MAP);
   //enable fifop interrupts
-  RFCORE->XREG_RFIRQM0 |= RFCORE_XREG_RFIRQM0_FIFOP;
+  RFCORE->XREG_RFIRQM0 |= CC2538RF_IRQMASK_FIFOP;
   //enable interrupt when tx is done
-  RFCORE->XREG_RFIRQM1 |= 0x2;
+  RFCORE->XREG_RFIRQM1 |= CC2538RF_IRQMASK_TXACKDONE;
+  RFCORE->XREG_RFIRQM1 |= CC2538RF_IRQMASK_TXDONE;
   //enable rx pkt done
-  //RFCORE_XREG_RFIRQM0 |= 0b1000000;
-  //enable intterupt when rf is idle
-  //RFCORE_XREG_RFIRQM1 |= 0x4;
-
-  //enable all interrupts for test purpose
-  //RFCORE_XREG_RFIRQM1 |= 0b111111;
-  //RFCORE_XREG_RFIRQM0 |= 0b111111;
+  RFCORE->XREG_RFIRQM0 |= CC2538RF_IRQMASK_RXPKTDONE;
 
 
   //enable interrupt in table for TX/RX
@@ -927,10 +922,35 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev)
   return 0;
 }
 
-void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,
-                       size_t offset)
+void cc2538rf_rx_read(uint8_t* data, uint8_t len)
 {
   DEBUG("cc2538rf_rx_read(): reset not implemented yet.\n");
+  uint8_t mhr[IEEE802154_MAX_HDR_LEN];
+  size_t pkt_len, hdr_len;
+  gnrc_pktsnip_t *hdr, *payload = NULL;
+  gnrc_netif_hdr_t *netif;
+
+  pkt_len = len;
+
+  /* abort here already if no event callback is registered */
+  if (!device->event_cb) {
+      return;
+  }
+
+  /* in raw mode, just read the binary dump into the packet buffer */
+  if (device->options & NETOPT_RAWMODE) {
+      payload = gnrc_pktbuf_add(NULL, NULL, pkt_len, GNRC_NETTYPE_UNDEF);
+      if (payload == NULL ) {
+          DEBUG("cc2538rf_rx_read: unable to allocate RAW data\n");
+          return;
+      }
+      //at86rf2xx_rx_read(dev, payload->data, pkt_len, 0);
+      memcpy(data, payload->data, pkt_len);
+      //payload->daa
+      device->event_cb(NETDEV_EVENT_RX_COMPLETE, payload);
+      return;
+  }
+
 }
 
 
@@ -1046,7 +1066,9 @@ void handle_rfcoretxrx_isr(void)
     DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
     DEBUG("cc2538rf_rfcoreinterrupt: Current TXFIFOCNT: %u\n", txfifocnt);
     if(irq0 & CC2538RF_IRQFLAG_RXPKTDONE){
-      uint8_t buffer[rxfifocnt];
+      //read length from fifo
+      uint8_t len = (uint8_t) RFCORE->SFR_RFDATA;
+      uint8_t buffer[len];
       int counter = 0;
       if(rxfifocnt > 0){
         DEBUG("cc2538rf_rfcoreinterrupt: Reading RX package: \n");
@@ -1054,6 +1076,7 @@ void handle_rfcoretxrx_isr(void)
           buffer[counter] = (uint8_t) RFCORE->SFR_RFDATA;
           DEBUG("0x%x ", buffer[counter]);
         }
+        cc2538rf_rx_read(buffer, len);
         if(counter > 0){
           RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
           RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;

@@ -53,7 +53,6 @@ extern "C" {
 #define CC2538RF_DEFAULT_CHANNEL              (15) /** CC2538rf default channel */
 #define CC2538RF_DEFAULT_PANID                (0x777) /** CC2538rf PAN ID */
 #define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - TX states */
-#define RFCORE_XREG_RFIRQM0_FIFOP             (0x04) /**< RX FIFO exceeded threshold */
 #define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
 #define IEEE_ADDR_LOCATION_SECONDARY 0x0027FFCC /**< Secondary IEEE address location */
 
@@ -110,13 +109,37 @@ extern "C" {
 #define CC2538RF_IRQFLAG_CSPWAIT     (0x0020)       /**< CSP Wait */
 
 /* RFCORE_SFR_RFIRQF0 */
-#define CC2538RF_IRQFLAG_SFD         (0x0001)       /**< SFD has been trans or recv */
-#define CC2538RF_IRQFLAG_FIFOP       (0x0002)       /**< FIFO Operation */
-#define CC2538RF_IRQFLAG_SRCMATDONE  (0x0004)       /**< Src Matching Done */
-#define CC2538RF_IRQFLAG_SRCMATFOUND (0x0008)       /**< Src Matching Found */
-#define CC2538RF_IRQFLAG_FRAMEACC    (0x0010)       /**< Frame Accepted */
-#define CC2538RF_IRQFLAG_RXPKTDONE   (0x0020)       /**< RX Paket Done */
-#define CC2538RF_IRQFLAG_RXMASKZERO  (0x0040)       /**< RXMASK has gone all zero */
+#define CC2538RF_IRQFLAG_SFD         (0x0002)       /**< SFD has been trans or recv */
+#define CC2538RF_IRQFLAG_FIFOP       (0x0004)       /**< FIFO Operation */
+#define CC2538RF_IRQFLAG_SRCMATDONE  (0x0008)       /**< Src Matching Done */
+#define CC2538RF_IRQFLAG_SRCMATFOUND (0x0010)       /**< Src Matching Found */
+#define CC2538RF_IRQFLAG_FRAMEACC    (0x0020)       /**< Frame Accepted */
+#define CC2538RF_IRQFLAG_RXPKTDONE   (0x0040)       /**< RX Paket Done */
+#define CC2538RF_IRQFLAG_RXMASKZERO  (0x0080)       /**< RXMASK has gone all zero */
+/** @} */
+
+
+/**
+ * @brief   RF Interrupt MASKS
+ * @{
+ */
+/* RFCORE_SFR_RFIRQM1 */
+#define CC2538RF_IRQMASK_TXACKDONE   (0x0001)       /**< TX ACK DONE*/
+#define CC2538RF_IRQMASK_TXDONE      (0x0002)       /**< TX DONE */
+#define CC2538RF_IRQMASK_RFIDLE      (0x0004)       /**< RF IDLE */
+#define CC2538RF_IRQMASK_CSPMANINT   (0x0008)       /**< CSP Manual Interrupt */
+#define CC2538RF_IRQMASK_CSPSTOP     (0x0010)       /**< CSP Stop */
+#define CC2538RF_IRQMASK_CSPWAIT     (0x0020)       /**< CSP Wait */
+
+/* RFCORE_SFR_RFIRQM0 */
+#define CC2538RF_IRQMASK_UNUSED      (0x0001)       /**< Unused */
+#define CC2538RF_IRQMASK_SFD         (0x0002)       /**< SFD sent or recv */
+#define CC2538RF_IRQMASK_FIFOP       (0x0004)       /**< FIFO Operation */
+#define CC2538RF_IRQMASK_SRCMATDONE  (0x0008)       /**< Src Matching Done */
+#define CC2538RF_IRQMASK_SRCMATFOUND (0x0010)       /**< Src Matching Found */
+#define CC2538RF_IRQMASK_FRMACCPT    (0x0020)       /**< RX Frame Accepted */
+#define CC2538RF_IRQMASK_RXPKTDONE   (0x0040)       /**< RX Packet done */
+#define CC2538RF_IRQMASK_RXMASKZERO  (0x0080)       /**< RXMASK has gone all zero */
 /** @} */
 
 /* CSP OPCODES */
@@ -464,15 +487,12 @@ void cc2538rf_tx_exec(cc2538rf_t *dev);
 size_t cc2538rf_rx_len(cc2538rf_t *dev);
 
 /**
- * @brief   Read a chunk of data from the receive buffer of the given device
+ * @brief   Is called from the interrupt handler to parse data and send it to the stack
  *
- * @param[in]  dev          device to read from
- * @param[out] data         buffer to write data to
- * @param[in]  len          number of bytes to read from device
- * @param[in]  offset       offset in the receive buffer
+ * @param[in]  data       buffer where the data is put
+ * @param[in]  len        length of the frame in the buffer to process
  */
-void cc2538rf_rx_read(cc2538rf_t *dev, uint8_t *data, size_t len,
-                       size_t offset);
+void cc2538rf_rx_read(uint8_t* data, uint8_t len);
 
 
 
