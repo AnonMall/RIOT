@@ -45,8 +45,6 @@ extern "C" {
 #endif /* CC2538_RF_CONF_AUTOACK */
 
 #define CC2538RF_CCA_THRES                    (0xF8) /** CCA Threshold */
-#define RFCORE_XREG_FRMCTRL0_AUTOCRC          (0x40) /** AUTO CRC XREG FRMCTRL0 */
-#define RFCORE_XREG_FRMCTRL0_AUTOACK          (0x20) /** AUTO ACK XREG FRMCTRL0 */
 #define RFCORE_XREG_FRMFILT0_FRAME_FILTER_EN  (0x01) /** enables frame filtering */
 #define CC2538RF_MAX_PACKET_LEN               (127) /** cc2538rf core max packet length */
 #define CC2538RF_TX_POWER                     (0xD5) /* ToDo: Determine value */
@@ -55,6 +53,17 @@ extern "C" {
 #define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - TX states */
 #define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
 #define IEEE_ADDR_LOCATION_SECONDARY 0x0027FFCC /**< Secondary IEEE address location */
+
+
+#define RSSI_OFFSET    73 /** offset in db, which has to be subtracted from the RSSI register */
+
+/**
+ * @brief   FRMCTRL0 Flags
+ * @{
+ */
+#define RFCORE_XREG_FRMCTRL0_AUTOCRC          (0x40) /** AUTO CRC XREG FRMCTRL0 */
+#define RFCORE_XREG_FRMCTRL0_AUTOACK          (0x20) /** AUTO ACK XREG FRMCTRL0 */
+#define RFCORE_XREG_FRMCTRL0_APPENDMODE       (0x80) /** appends RSSI values to rx buffer */
 
 /**
  * @brief   Internal device option flags

@@ -389,8 +389,10 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
 
     //check current csp instruction
+#if DEBUG
     uint8_t currentCSP = (uint8_t) RFCORE_SFR_RFST;
     DEBUG("cc2538rf: current CSP instruction OPCODE: %x\n", currentCSP);
+#endif
 
     DEBUG("cc2538rf: amount currently in the TX FIFO after send: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
 
@@ -421,7 +423,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     gnrc_pktbuf_release(pkt);
     dev->state = NETOPT_STATE_IDLE;
 
-return -1;
+    return len;
 }
 
 
@@ -774,14 +776,18 @@ int cc2538rf_init(cc2538rf_t *dev)
   //setting up addresses
   uint64_t longAddress;
   cpuid_get((void*)&longAddress);
+#if DEBUG
   uint8_t* longToShortAddress = (uint8_t*) &longAddress;
+#endif
   cc2538rf_set_addr_long(dev, longAddress);
 
+#if DEBUG
   DEBUG("cc2538rf: long address from flash: \n");
   for(int i = 0; i<8; i++){
     DEBUG("%x:", longToShortAddress[i]);
   }
   DEBUG("\n");
+#endif
 
 
   DEBUG("cc2538rf: current long address:\n");
@@ -922,6 +928,111 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev)
   return 0;
 }
 
+
+
+/* TODO: generalize and move to (gnrc_)ieee802154 */
+static gnrc_pktsnip_t *_make_netif_hdr(uint8_t *mhr)
+{
+    uint8_t tmp;
+    uint8_t *addr;
+    uint8_t src_len, dst_len;
+    gnrc_pktsnip_t *snip;
+    gnrc_netif_hdr_t *hdr;
+
+    /* figure out address sizes */
+    tmp = mhr[1] & IEEE802154_FCF_SRC_ADDR_MASK;
+    if (tmp == IEEE802154_FCF_SRC_ADDR_SHORT) {
+        src_len = 2;
+    }
+    else if (tmp == IEEE802154_FCF_SRC_ADDR_LONG) {
+        src_len = 8;
+    }
+    else if (tmp == IEEE802154_FCF_SRC_ADDR_VOID) {
+        src_len = 0;
+    }
+    else {
+        return NULL;
+    }
+    tmp = mhr[1] & IEEE802154_FCF_DST_ADDR_MASK;
+    if (tmp == IEEE802154_FCF_DST_ADDR_SHORT) {
+        dst_len = 2;
+    }
+    else if (tmp == IEEE802154_FCF_DST_ADDR_LONG) {
+        dst_len = 8;
+    }
+    else if (tmp == IEEE802154_FCF_DST_ADDR_VOID) {
+        dst_len = 0;
+    }
+    else {
+        return NULL;
+    }
+    /* allocate space for header */
+    snip = gnrc_pktbuf_add(NULL, NULL, sizeof(gnrc_netif_hdr_t) + src_len + dst_len,
+                           GNRC_NETTYPE_NETIF);
+    if (snip == NULL) {
+        return NULL;
+    }
+    /* fill header */
+    hdr = (gnrc_netif_hdr_t *)snip->data;
+    gnrc_netif_hdr_init(hdr, src_len, dst_len);
+    if (dst_len > 0) {
+        tmp = 5 + dst_len;
+        addr = gnrc_netif_hdr_get_dst_addr(hdr);
+        for (int i = 0; i < dst_len; i++) {
+            addr[i] = mhr[5 + (dst_len - i) - 1];
+        }
+    }
+    else {
+        tmp = 3;
+    }
+    if (!(mhr[0] & IEEE802154_FCF_PAN_COMP)) {
+        tmp += 2;
+    }
+    if (src_len > 0) {
+        addr = gnrc_netif_hdr_get_src_addr(hdr);
+        for (int i = 0; i < src_len; i++) {
+            addr[i] = mhr[tmp + (src_len - i) - 1];
+        }
+    }
+    return snip;
+}
+
+/* TODO: generalize and move to ieee802154 */
+/* TODO: include security header implications */
+static size_t _get_frame_hdr_len(uint8_t *mhr)
+{
+    uint8_t tmp;
+    size_t len = 3;
+
+    /* figure out address sizes */
+    tmp = (mhr[1] & IEEE802154_FCF_DST_ADDR_MASK);
+    if (tmp == IEEE802154_FCF_DST_ADDR_SHORT) {
+        len += 4;
+    }
+    else if (tmp == IEEE802154_FCF_DST_ADDR_LONG) {
+        len += 10;
+    }
+    else if (tmp != IEEE802154_FCF_DST_ADDR_VOID) {
+        return 0;
+    }
+    tmp = (mhr[1] & IEEE802154_FCF_SRC_ADDR_MASK);
+    if (tmp == IEEE802154_FCF_SRC_ADDR_VOID) {
+        return len;
+    }
+    else {
+        if (!(mhr[0] & IEEE802154_FCF_PAN_COMP)) {
+            len += 2;
+        }
+        if (tmp == IEEE802154_FCF_SRC_ADDR_SHORT) {
+            return (len + 2);
+        }
+        else if (tmp == IEEE802154_FCF_SRC_ADDR_LONG) {
+            return (len + 8);
+        }
+    }
+    return 0;
+}
+
 void cc2538rf_rx_read(uint8_t* data, uint8_t len)
 {
   DEBUG("cc2538rf_rx_read(): reset not implemented yet.\n");
@@ -929,8 +1040,12 @@ void cc2538rf_rx_read(uint8_t* data, uint8_t len)
   size_t pkt_len, hdr_len;
   gnrc_pktsnip_t *hdr, *payload = NULL;
   gnrc_netif_hdr_t *netif;
+  int8_t rssi = 0;
+  uint8_t lqi = 0;
+  int currentPos = 0;
 
-  pkt_len = len;
+  //packet length is the len - 2, as the FCS is attached at the end
+  pkt_len = len - 2;
 
   /* abort here already if no event callback is registered */
   if (!device->event_cb) {
@@ -951,6 +1066,54 @@ void cc2538rf_rx_read(uint8_t* data, uint8_t len)
       return;
   }
 
+  /* get FCF field and compute 802.15.4 header length */
+  memcpy(data, mhr, 2);
+  hdr_len = _get_frame_hdr_len(mhr);
+  if (hdr_len == 0) {
+      DEBUG("cc2538rf_rx_read: unable parse incoming frame header\n");
+      return;
+  }
+  currentPos = 2;
+
+  /* read the rest of the header and parse the netif header from it */
+  memcpy(data+currentPos, mhr+currentPos, hdr_len-currentPos);
+  hdr = _make_netif_hdr(mhr);
+  if (hdr == NULL) {
+      DEBUG("cc2538rf_rx_read: unable to allocate netif header\n");
+      return;
+  }
+  currentPos = hdr_len;
+
+  /* allocate payload */
+  payload = gnrc_pktbuf_add(hdr, NULL, (pkt_len - hdr_len), device->proto);
+  if (payload == NULL) {
+      DEBUG("cc2538rf_rx_read: unable to allocate incoming payload\n");
+      gnrc_pktbuf_release(hdr);
+      return;
+  }
+
+
+  /* copy payload */
+  memcpy(data+currentPos, payload->data, payload->size);
+
+  currentPos+=payload->size;
+
+  //get the RSSI and LQI
+  memcpy(data+currentPos, &rssi, sizeof(int8_t));
+  rssi -= RSSI_OFFSET;
+  currentPos += sizeof(int8_t);
+  memcpy(data+currentPos, &lqi, sizeof(uint8_t));
+  lqi = lqi&0x7F;
+
+  /* fill missing fields in netif header */
+  netif = (gnrc_netif_hdr_t *)hdr->data;
+  netif->if_pid = device->mac_pid;
+  netif->lqi = lqi;
+  netif->rssi = rssi;
+
+
+  /* finish up and send data to upper layers */
+  device->event_cb(NETDEV_EVENT_RX_COMPLETE, payload);
 }
 
 
@@ -1039,11 +1202,12 @@ void handle_rfcoretxrx_isr(void)
 
   uint8_t irq0 = (uint8_t) RFCORE_SFR_RFIRQF0;
   uint8_t irq1 = (uint8_t) RFCORE_SFR_RFIRQF1;
+#if DEBUG
   uint8_t fsmstat1 = (uint8_t) RFCORE->XREG_FSMSTAT1;
-
   DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF0: 0x%x\n", irq0);
   DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF1: 0x%x\n", irq1);
   DEBUG("cc2538rf_rfcoreinterrupt: FSMSTAT1: 0x%x\n", fsmstat1);
+#endif
 
   //check fifo status
   if(RFCORE->XREG_FSMSTAT1 & 0x40)
@@ -1060,33 +1224,35 @@ void handle_rfcoretxrx_isr(void)
 
   if(irq0 & CC2538RF_IRQFLAG_FIFOP)
   {
+#if DEBUG
     DEBUG("cc2538rf_rfcoreinterrupt: FIFO OP\n");
-    uint8_t rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
     uint8_t txfifocnt = (uint8_t)RFCORE->XREG_TXFIFOCNT;
-    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
     DEBUG("cc2538rf_rfcoreinterrupt: Current TXFIFOCNT: %u\n", txfifocnt);
-    if(irq0 & CC2538RF_IRQFLAG_RXPKTDONE){
-      //read length from fifo
-      uint8_t len = (uint8_t) RFCORE->SFR_RFDATA;
-      uint8_t buffer[len];
-      int counter = 0;
-      if(rxfifocnt > 0){
-        DEBUG("cc2538rf_rfcoreinterrupt: Reading RX package: \n");
-        for(; counter<rxfifocnt; counter++){
-          buffer[counter] = (uint8_t) RFCORE->SFR_RFDATA;
-          DEBUG("0x%x ", buffer[counter]);
-        }
-        cc2538rf_rx_read(buffer, len);
-        if(counter > 0){
-          RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
-          RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
-          DEBUG("\n");
-        }
-      }
-      RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_RXPKTDONE;
-    }
+#endif
+    uint8_t rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
+    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
     RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_FIFOP;
   }
+
+  if(irq0 & CC2538RF_IRQFLAG_RXPKTDONE){
+    //read length from fifo
+    uint8_t len = (uint8_t) RFCORE->SFR_RFDATA;
+    uint8_t buffer[len];
+    int counter = 0;
+    DEBUG("cc2538rf_rfcoreinterrupt: Reading RX package: \n");
+    for(; counter<len; counter++){
+      buffer[counter] = (uint8_t) RFCORE->SFR_RFDATA;
+      DEBUG("0x%x ", buffer[counter]);
+    }
+    cc2538rf_rx_read(buffer, len);
+    if(counter > 0){
+      RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+      RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+      DEBUG("\n");
+    }
+    RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_RXPKTDONE;
+  }
+
 
   if(irq0 & CC2538RF_IRQFLAG_RXMASKZERO)
   {
@@ -1123,8 +1289,10 @@ void isr_ssi1(void)
 void isr_rfcoreerr(void)
 {
   DEBUG("\n\ncc2538rf: GOT INTERRUPT ERROR\n");
+#if DEBUG
   uint8_t rferror = RFCORE->SFR_RFERRF;
   DEBUG("cc2538rf: RF ERROR: %x\n\n", rferror);
+#endif
   RFCORE->SFR_RFERRF = (uint8_t) 0x0;
   DEBUG("cc2538rf: Resetting RF\n");
 
