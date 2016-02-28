@@ -385,7 +385,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     dev->state = NETOPT_STATE_TX;
     DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
     //set SET_RXENMASK_ON_TX to switch on RX after TX finished
-    RFCORE->XREG_FRMCTRL1 |= 0x01;
+    //RFCORE->XREG_FRMCTRL1 |= 0x01;
     RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
 
     //check current csp instruction
@@ -396,8 +396,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
     DEBUG("cc2538rf: amount currently in the TX FIFO after send: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
 
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
 
     DEBUG("cc2538rf: amount currently in the TX FIFO after flush: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
 
@@ -1035,7 +1033,6 @@ static size_t _get_frame_hdr_len(uint8_t *mhr)
 
 void cc2538rf_rx_read(uint8_t* data, uint8_t len)
 {
-  DEBUG("cc2538rf_rx_read(): reset not implemented yet.\n");
   uint8_t mhr[IEEE802154_MAX_HDR_LEN];
   size_t pkt_len, hdr_len;
   gnrc_pktsnip_t *hdr, *payload = NULL;
@@ -1054,6 +1051,7 @@ void cc2538rf_rx_read(uint8_t* data, uint8_t len)
 
   /* in raw mode, just read the binary dump into the packet buffer */
   if (device->options & NETOPT_RAWMODE) {
+      DEBUG("cc2538rf_rx_read: sending to stack in RAW mode\n");
       payload = gnrc_pktbuf_add(NULL, NULL, pkt_len, GNRC_NETTYPE_UNDEF);
       if (payload == NULL ) {
           DEBUG("cc2538rf_rx_read: unable to allocate RAW data\n");
@@ -1095,6 +1093,18 @@ void cc2538rf_rx_read(uint8_t* data, uint8_t len)
 
   /* copy payload */
   memcpy(data+currentPos, payload->data, payload->size);
+
+#if DEBUG
+  gnrc_pktsnip_t *snip = payload;
+  DEBUG("cc2538rf_rx_read: reading payload which is going to be send up\n");
+  while(snip){
+    for(int i = 0; i< snip->size; i++){
+      DEBUG("0x%x ", ((uint8_t*)(snip->data))[i]);
+  }
+    snip = snip->next;
+  }
+  DEBUG("\n");
+#endif
 
   currentPos+=payload->size;
 
@@ -1202,24 +1212,27 @@ void handle_rfcoretxrx_isr(void)
 
   uint8_t irq0 = (uint8_t) RFCORE_SFR_RFIRQF0;
   uint8_t irq1 = (uint8_t) RFCORE_SFR_RFIRQF1;
-#if DEBUG
   uint8_t fsmstat1 = (uint8_t) RFCORE->XREG_FSMSTAT1;
+#if DEBUG
   DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF0: 0x%x\n", irq0);
   DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF1: 0x%x\n", irq1);
   DEBUG("cc2538rf_rfcoreinterrupt: FSMSTAT1: 0x%x\n", fsmstat1);
 #endif
 
   //check fifo status
-  if(RFCORE->XREG_FSMSTAT1 & 0x40)
+  if(fsmstat1 & 0x40)
   {
     DEBUG("cc2538rf_rfcoreinterrupt: FIFO FSMSTAT1\n");
   }
 
   //parse for flags
-  if(irq1 & CC2538RF_IRQFLAG_TXDONE)
+  if(irq1 & CC2538RF_IRQFLAG_TXDONE || irq1 & CC2538RF_IRQFLAG_TXACKDONE)
   {
     DEBUG("cc2538rf_rfcoreinterrupt: TX DONE\n");
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
     RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXDONE;
+    RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXACKDONE;
   }
 
   if(irq0 & CC2538RF_IRQFLAG_FIFOP)
@@ -1228,9 +1241,9 @@ void handle_rfcoretxrx_isr(void)
     DEBUG("cc2538rf_rfcoreinterrupt: FIFO OP\n");
     uint8_t txfifocnt = (uint8_t)RFCORE->XREG_TXFIFOCNT;
     DEBUG("cc2538rf_rfcoreinterrupt: Current TXFIFOCNT: %u\n", txfifocnt);
-#endif
     uint8_t rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
     DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
+#endif
     RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_FIFOP;
   }
 
@@ -1289,27 +1302,31 @@ void isr_ssi1(void)
 void isr_rfcoreerr(void)
 {
   DEBUG("\n\ncc2538rf: GOT INTERRUPT ERROR\n");
-#if DEBUG
-  uint8_t rferror = RFCORE->SFR_RFERRF;
-  DEBUG("cc2538rf: RF ERROR: %x\n\n", rferror);
-#endif
-  RFCORE->SFR_RFERRF = (uint8_t) 0x0;
-  DEBUG("cc2538rf: Resetting RF\n");
+  uint8_t rferror = (uint8_t)RFCORE->SFR_RFERRF;
+  if(rferror){
+    DEBUG("cc2538rf: RF ERROR: 0x%x\n\n", rferror);
+    //DEBUG("cc2538rf: Resetting RF\n");
 
-  //Resetting Radio
-  //Wait for TX to end
-  while(RFCORE->XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE);
+    //Resetting Radio
+    //Wait for TX to end
+    while(RFCORE->XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE);
 
-  //Flush TX FIFO
-  RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
-  RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    //Flush TX FIFO
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
 
-  //Checking if Radio is already off, otherwise we get a Strobe Error
-  if(RFCORE_XREG_RXENABLE != 0) {
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRFOFF;
+    //Flush RX FIFO
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+
+    //Checking if Radio is already off, otherwise we get a Strobe Error
+    if(RFCORE_XREG_RXENABLE != 0) {
+      RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRFOFF;
+    }
+
+    RFCORE->SFR_RFERRF = (uint8_t) 0x0;
+
+    //cc2538rf_init(device);
   }
-
-  //RFCORE_SFR_RFERRF = 0;
-  //cc2538rf_init(device);
 
 }
