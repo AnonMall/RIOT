@@ -131,6 +131,7 @@ static inline void _a_to_timex(timex_t *delay, const char *a)
 
 int _icmpv6_ping(int argc, char **argv)
 {
+    puts("starting ping");
     int count = 3, success = 0, remaining;
     size_t payload_len = 4;
     timex_t delay = { 1, 0 };
@@ -190,16 +191,19 @@ int _icmpv6_ping(int argc, char **argv)
             break;
     }
 
+    puts("getting ipv6 addr");
     if ((ipv6_addr_from_str(&addr, addr_str) == NULL) || (((int)payload_len) < 0)) {
         usage(argv);
         return 1;
     }
 
+    puts("getting netreg register");
     if (gnrc_netreg_register(GNRC_NETTYPE_ICMPV6, &my_entry) < 0) {
         puts("error: network registry is full");
         return 1;
     }
 
+    puts("looking up ipv6 entry");
     ipv6_entry = gnrc_netreg_lookup(GNRC_NETTYPE_IPV6, GNRC_NETREG_DEMUX_CTX_ALL);
 
     if (ipv6_entry == NULL) {
@@ -209,12 +213,14 @@ int _icmpv6_ping(int argc, char **argv)
 
     remaining = count;
 
+    puts("starting vtimer");
     vtimer_now(&start);
 
     while ((remaining--) > 0) {
         gnrc_pktsnip_t *pkt;
         timex_t start, stop, timeout = { 1, 0 };
 
+        puts("building echo package");
         pkt = gnrc_icmpv6_echo_req_build(id, ++max_seq_expected, NULL,
                                          payload_len);
 
@@ -233,6 +239,7 @@ int _icmpv6_ping(int argc, char **argv)
             continue;
         }
 
+        puts("vtimer start 2");
         vtimer_now(&start);
         if (gnrc_netapi_send(ipv6_entry->pid, pkt) < 1) {
             puts("error: unable to send ICMPv6 echo request\n");
@@ -240,9 +247,12 @@ int _icmpv6_ping(int argc, char **argv)
             continue;
         }
 
+        puts("waiting on vtimer");
         if (vtimer_msg_receive_timeout(&msg, timeout) >= 0) {
+            puts("got message timeout");
             switch (msg.type) {
                 case GNRC_NETAPI_MSG_TYPE_RCV:
+                    puts("its a gnrc_netapi_msg_type_rcv");
                     vtimer_now(&stop);
                     stop = timex_sub(stop, start);
 
@@ -263,6 +273,7 @@ int _icmpv6_ping(int argc, char **argv)
                     break;
 
                 default:
+                    puts("this is default");
                     /* requeue wrong packets */
                     msg_send(&msg, thread_getpid());
                     break;
@@ -272,6 +283,7 @@ int _icmpv6_ping(int argc, char **argv)
             puts("ping timeout");
         }
 
+        puts("trying to read message");
         while(msg_try_receive(&msg) > 0) {
             if (msg.type == GNRC_NETAPI_MSG_TYPE_RCV) {
                 printf("dropping additional response packet (probably caused by duplicates)\n");

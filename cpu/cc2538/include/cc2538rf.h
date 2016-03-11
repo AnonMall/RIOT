@@ -50,7 +50,6 @@ extern "C" {
 #define CC2538RF_TX_POWER                     (0xD5) /* ToDo: Determine value */
 #define CC2538RF_DEFAULT_CHANNEL              (15) /** CC2538rf default channel */
 #define CC2538RF_DEFAULT_PANID                (0x777) /** CC2538rf PAN ID */
-#define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - TX states */
 #define IEEE_ADDR_LOCATION_PRIMARY   0x00280028 /**< Primary IEEE address location */
 #define IEEE_ADDR_LOCATION_SECONDARY 0x0027FFCC /**< Secondary IEEE address location */
 
@@ -103,6 +102,20 @@ extern "C" {
 #define CC2538RF_STATE_RX_AACK_ON   (0x16)     /**< wait for incoming data */
 #define CC2538RF_STATE_TX_ARET_ON   (0x19)     /**< ready for sending data */
 #define CC2538RF_STATE_IN_PROGRESS  (0x1f)     /**< ongoing state conversion */
+/** @} */
+
+/**
+ * @brief   Flags for FSMSTAT
+ * @{
+ */
+#define RFCORE_XREG_FSMSTAT1_RX_ACTIVE        (0x1) /**< Status signal - TX states */
+#define RFCORE_XREG_FSMSTAT1_TX_ACTIVE        (0x2) /**< Status signal - RX states */
+#define RFCORE_XREG_FSMSTAT1_LOCKSTATUS       (0x4) /**< Status signal - Lock Status */
+#define RFCORE_XREG_FSMSTAT1_SIMPLED_CCA      (0x8) /**< Status signal - Simpled CCA Sample */
+#define RFCORE_XREG_FSMSTAT1_CCA              (0x10) /**< Status signal - Clear Channel */
+#define RFCORE_XREG_FSMSTAT1_SFD              (0x20) /**< Status signal - SFD was sent or received */
+#define RFCORE_XREG_FSMSTAT1_FIFO             (0x40) /**< Status signal - FIFOP */
+#define RFCORE_XREG_FSMSTAT1_FIFOP            (0x80) /**< Status signal - FIFO */
 /** @} */
 
 /**
@@ -498,10 +511,8 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev);
 /**
  * @brief   Is called from the interrupt handler to parse data and send it to the stack
  *
- * @param[in]  data       buffer where the data is put
- * @param[in]  len        length of the frame in the buffer to process
  */
-void cc2538rf_rx_read(uint8_t* data, uint8_t len);
+void cc2538rf_rx_read(void);
 
 
 

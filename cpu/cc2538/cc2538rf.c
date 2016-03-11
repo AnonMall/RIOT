@@ -28,7 +28,7 @@
 #include "cc2538rf.h"
 #include "cc2538.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define UDMA_ENABLED 0
@@ -269,64 +269,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     }
         DEBUG("\n");
 
-#if 0
-      uint8_t *data;
-      gnrc_pktsnip_t *current = pkt;
-      while(current){
-        data = current->data;
-        switch(current->type){
-          case GNRC_NETTYPE_IOVEC:
-            DEBUG("PKT Type is GNRC_NETTYPE_IOVEC  ");
-            break;
-
-          case GNRC_NETTYPE_NETIF:
-            DEBUG("PKT Type is GNRC_NETTYPE_NETIF  ");
-            break;
-
-          case GNRC_NETTYPE_UNDEF:
-            DEBUG("PKT Type is GNRC_NETTYPE_UNDEF  ");
-            break;
-
-
-          case GNRC_NETTYPE_SIXLOWPAN:
-            DEBUG("PKT Type is GNRC_NETTYPE_SIXLOWPAN  ");
-            break;
-
-          case GNRC_NETTYPE_IPV6:
-            DEBUG("PKT Type is GNRC_NETTYPE_IPV6  ");
-            break;
-
-          case GNRC_NETTYPE_ICMPV6:
-            DEBUG("PKT Type is GNRC_NETTYPE_ICMPV6  ");
-            break;
-
-/*
-          case GNRC_NETTYPE_TCP:
-            DEBUG("PKT Type is GNRC_NETTYPE_TCP  ");
-            break;
-*/
-          case GNRC_NETTYPE_UDP:
-            DEBUG("PKT Type is GNRC_NETTYPE_UDP  ");
-            break;
-
-          case GNRC_NETTYPE_NUMOF:
-            DEBUG("PKT Type is GNRC_NETTYPE_NUMOF  ");
-            break;
-
-          default:
-            DEBUG("PKT Type is something else  ");
-            break;
-
-        }
-        for(int i = 0; i < current->size; i++){
-          DEBUG("0x%x ", *(data+i));
-        }
-        DEBUG("\n");
-        current = current->next;
-      }
-
-#endif
-
 
     if (dev == NULL) {
         gnrc_pktbuf_release(pkt);
@@ -389,7 +331,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
 
     //check current csp instruction
-#if DEBUG
+#if ENABLE_DEBUG
     uint8_t currentCSP = (uint8_t) RFCORE_SFR_RFST;
     DEBUG("cc2538rf: current CSP instruction OPCODE: %x\n", currentCSP);
 #endif
@@ -735,14 +677,14 @@ const netdev2_driver_t cc2538rf_driver_netdev2 = {
 int cc2538rf_init(cc2538rf_t *dev)
 {
   DEBUG("cc2538rf: Init\n");
-  #if DEBUG
+#if ENABLE_DEBUG
   DEBUG("cc2538rf: checking if CSP is runngin or idle: \n");
   if((uint8_t)RFCORE->XREG_CSPSTAT & CC2538RF_CSP_RUNNING){
     DEBUG("cc2538rf: CSP is runngin\n");
   }else{
     DEBUG("cc2538rf: CSP is idle\n");
   }
-  #endif
+#endif
 
   //trying to reset whole rf in order not to reset the whole mote
   DEBUG("cc2538rf_init: current RXENABLE: %u \n", (uint8_t)RFCORE->XREG_RXENABLE);
@@ -774,12 +716,12 @@ int cc2538rf_init(cc2538rf_t *dev)
   //setting up addresses
   uint64_t longAddress;
   cpuid_get((void*)&longAddress);
-#if DEBUG
+#if ENABLE_DEBUG
   uint8_t* longToShortAddress = (uint8_t*) &longAddress;
 #endif
   cc2538rf_set_addr_long(dev, longAddress);
 
-#if DEBUG
+#if ENABLE_DEBUG
   DEBUG("cc2538rf: long address from flash: \n");
   for(int i = 0; i<8; i++){
     DEBUG("%x:", longToShortAddress[i]);
@@ -1031,18 +973,31 @@ static size_t _get_frame_hdr_len(uint8_t *mhr)
     return 0;
 }
 
-void cc2538rf_rx_read(uint8_t* data, uint8_t len)
+void cc2538rf_rx_read(void)
 {
+
+
+  if((RFCORE->XREG_RXFIFOCNT) == 0){
+    DEBUG("cc2538rf_rx_read: nothing in fifo. Should not happen\n");
+    return;
+  }
+
+  if(RFCORE->XREG_RXFIRST == 0){
+    DEBUG("cc2538rf_rx_read: package length is 0. Frame is invalid. Flushing FIFO\n");
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    return;
+  }
+
   uint8_t mhr[IEEE802154_MAX_HDR_LEN];
   size_t pkt_len, hdr_len;
   gnrc_pktsnip_t *hdr, *payload = NULL;
   gnrc_netif_hdr_t *netif;
   int8_t rssi = 0;
   uint8_t lqi = 0;
-  int currentPos = 0;
 
   //packet length is the len - 2, as the FCS is attached at the end
-  pkt_len = len - 2;
+  pkt_len = (uint8_t) RFCORE->SFR_RFDATA;
 
   /* abort here already if no event callback is registered */
   if (!device->event_cb) {
@@ -1057,71 +1012,79 @@ void cc2538rf_rx_read(uint8_t* data, uint8_t len)
           DEBUG("cc2538rf_rx_read: unable to allocate RAW data\n");
           return;
       }
-      //at86rf2xx_rx_read(dev, payload->data, pkt_len, 0);
-      memcpy(data, payload->data, pkt_len);
-      //payload->daa
+      for(int i=0; i<pkt_len; i++){
+        *(((uint8_t*)payload->data) + i) = (uint8_t) RFCORE->SFR_RFDATA;
+      }
       device->event_cb(NETDEV_EVENT_RX_COMPLETE, payload);
       return;
   }
 
   /* get FCF field and compute 802.15.4 header length */
-  memcpy(data, mhr, 2);
+  mhr[0]=(uint8_t) RFCORE->SFR_RFDATA;
+  mhr[1]=(uint8_t) RFCORE->SFR_RFDATA;
   hdr_len = _get_frame_hdr_len(mhr);
   if (hdr_len == 0) {
       DEBUG("cc2538rf_rx_read: unable parse incoming frame header\n");
       return;
   }
-  currentPos = 2;
+
+
 
   /* read the rest of the header and parse the netif header from it */
-  memcpy(data+currentPos, mhr+currentPos, hdr_len-currentPos);
+  DEBUG("cc2538rf_rx_read: header with len 0x%x:\n", hdr_len);
+  DEBUG("0x%x 0x%x ", mhr[0], mhr[1]);
+  for(int i=2; i<hdr_len; i++){
+    mhr[i]=(uint8_t) RFCORE->SFR_RFDATA;
+    DEBUG("0x%x ", mhr[i]);
+  }
+  DEBUG("\n");
   hdr = _make_netif_hdr(mhr);
   if (hdr == NULL) {
       DEBUG("cc2538rf_rx_read: unable to allocate netif header\n");
       return;
   }
-  currentPos = hdr_len;
+
+size_t dataLen = pkt_len - hdr_len - 2;
+uint8_t frameData[dataLen];
+
+  DEBUG("cc2538_rx_read: Reading frame data:\n");
+  /* copy payload */
+  for(int i=0; i<dataLen; i++){
+    frameData[i] = (uint8_t) RFCORE->SFR_RFDATA;
+    DEBUG("0x%x ", frameData[i]);
+  }
+  DEBUG("\n");
+
+
+  //get the RSSI and LQI
+  rssi = ((uint8_t) RFCORE->SFR_RFDATA) - RSSI_OFFSET;
+  lqi = ((uint8_t) RFCORE->SFR_RFDATA)&0x7F;
+
+  /* fill missing fields in netif header */
+  netif = (gnrc_netif_hdr_t *)hdr->data;
+  netif->if_pid = device->mac_pid;
+  DEBUG("cc2538rf_rx_read: device->mac_pid = %i\n", device->mac_pid);
+  netif->lqi = lqi;
+  netif->rssi = rssi;
+
+
+  DEBUG("cc2538rf_rx_read: header information:\n");
+  DEBUG("src addr len: 0x%x\n", netif->src_l2addr_len);
+  DEBUG("dst addr len: 0x%x\n", netif->dst_l2addr_len);
 
   /* allocate payload */
-  payload = gnrc_pktbuf_add(hdr, NULL, (pkt_len - hdr_len), device->proto);
+  DEBUG("cc2538rf_rx_read: device proto is: 0x%x\n", device->proto);
+  payload = gnrc_pktbuf_add(hdr, NULL, dataLen, device->proto);
   if (payload == NULL) {
       DEBUG("cc2538rf_rx_read: unable to allocate incoming payload\n");
       gnrc_pktbuf_release(hdr);
       return;
   }
 
-
-  /* copy payload */
-  memcpy(data+currentPos, payload->data, payload->size);
-
-#if DEBUG
-  gnrc_pktsnip_t *snip = payload;
-  DEBUG("cc2538rf_rx_read: reading payload which is going to be send up\n");
-  while(snip){
-    for(int i = 0; i< snip->size; i++){
-      DEBUG("0x%x ", ((uint8_t*)(snip->data))[i]);
+  uint8_t* payloadData = (uint8_t*) payload->data;
+  for(int i=0; i<dataLen; i++){
+    payloadData[i] = frameData[i];
   }
-    snip = snip->next;
-  }
-  DEBUG("\n");
-#endif
-
-  currentPos+=payload->size;
-
-  //get the RSSI and LQI
-  memcpy(data+currentPos, &rssi, sizeof(int8_t));
-  rssi -= RSSI_OFFSET;
-  currentPos += sizeof(int8_t);
-  memcpy(data+currentPos, &lqi, sizeof(uint8_t));
-  lqi = lqi&0x7F;
-
-  /* fill missing fields in netif header */
-  netif = (gnrc_netif_hdr_t *)hdr->data;
-  netif->if_pid = device->mac_pid;
-  netif->lqi = lqi;
-  netif->rssi = rssi;
-
-
   /* finish up and send data to upper layers */
   device->event_cb(NETDEV_EVENT_RX_COMPLETE, payload);
 }
@@ -1213,7 +1176,7 @@ void handle_rfcoretxrx_isr(void)
   uint8_t irq0 = (uint8_t) RFCORE_SFR_RFIRQF0;
   uint8_t irq1 = (uint8_t) RFCORE_SFR_RFIRQF1;
   uint8_t fsmstat1 = (uint8_t) RFCORE->XREG_FSMSTAT1;
-#if DEBUG
+#if ENABLE_DEBUG
   DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF0: 0x%x\n", irq0);
   DEBUG("cc2538rf_rfcoreinterrupt: RFIRQF1: 0x%x\n", irq1);
   DEBUG("cc2538rf_rfcoreinterrupt: FSMSTAT1: 0x%x\n", fsmstat1);
@@ -1231,39 +1194,34 @@ void handle_rfcoretxrx_isr(void)
     DEBUG("cc2538rf_rfcoreinterrupt: TX DONE\n");
     RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
     RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
-    RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXDONE;
-    RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXACKDONE;
+    //RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXDONE;
+    //RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXACKDONE;
   }
 
-  if(irq0 & CC2538RF_IRQFLAG_FIFOP)
-  {
-#if DEBUG
-    DEBUG("cc2538rf_rfcoreinterrupt: FIFO OP\n");
-    uint8_t txfifocnt = (uint8_t)RFCORE->XREG_TXFIFOCNT;
-    DEBUG("cc2538rf_rfcoreinterrupt: Current TXFIFOCNT: %u\n", txfifocnt);
+
+  if(irq0 & CC2538RF_IRQFLAG_RXPKTDONE || irq0 & CC2538RF_IRQFLAG_FIFOP){
+    DEBUG("cc2538rf_rfcoreinterrupt: Reading RX package\n");
+#if ENABLE_DEBUG
     uint8_t rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
-    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
 #endif
-    RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_FIFOP;
-  }
+    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
 
-  if(irq0 & CC2538RF_IRQFLAG_RXPKTDONE){
-    //read length from fifo
-    uint8_t len = (uint8_t) RFCORE->SFR_RFDATA;
-    uint8_t buffer[len];
-    int counter = 0;
-    DEBUG("cc2538rf_rfcoreinterrupt: Reading RX package: \n");
-    for(; counter<len; counter++){
-      buffer[counter] = (uint8_t) RFCORE->SFR_RFDATA;
-      DEBUG("0x%x ", buffer[counter]);
-    }
-    cc2538rf_rx_read(buffer, len);
-    if(counter > 0){
-      RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
-      RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
-      DEBUG("\n");
-    }
-    RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_RXPKTDONE;
+    cc2538rf_rx_read();
+#if ENABLE_DEBUG
+    rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
+#endif
+    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT after read: %u\n", rxfifocnt);
+    /*
+    DEBUG("cc2538rf_rfcoreinterrupt: flushing RX fifo\n");
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+#if ENABLE_DEBUG
+    rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
+#endif
+    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT after flush: %u\n", rxfifocnt);
+    */
+    //RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_RXPKTDONE;
+    //RFCORE->SFR_RFIRQF0 &= ~CC2538RF_IRQFLAG_FIFOP;
   }
 
 
@@ -1271,9 +1229,17 @@ void handle_rfcoretxrx_isr(void)
   {
     DEBUG("cc2538rf_rfcoreinterrupt: RX Disabled\n");
     //RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
-    RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_RXMASKZERO;
+#if ENABLE_DEBUG
+    uint8_t rxfifocnt = (uint8_t)RFCORE->XREG_RXFIFOCNT;
+#endif
+    DEBUG("cc2538rf_rfcoreinterrupt: Current RXFIFOCNT: %u\n", rxfifocnt);
+    if(!(RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE)){
+      RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
+    }
+    //RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_RXMASKZERO;
   }
-
+  RFCORE->SFR_RFIRQF1 = 0;
+  RFCORE->SFR_RFIRQF0 = 0;
 
   DEBUG("\n");
 }
@@ -1325,6 +1291,7 @@ void isr_rfcoreerr(void)
     }
 
     RFCORE->SFR_RFERRF = (uint8_t) 0x0;
+    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
 
     //cc2538rf_init(device);
   }
