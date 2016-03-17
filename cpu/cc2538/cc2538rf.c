@@ -237,8 +237,6 @@ static gnrc_pktsnip_t *_make_netif_hdr(uint8_t *mhr)
 }
 #endif
 
-//TODO: not finished yet, also need outsourcing into other methods
-//otherwise it looks too full
 static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
 
@@ -248,8 +246,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     while(RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE);
 
     //clearing TX FIFO
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    cc2538rf_flush_tx_fifo();
 
     cc2538rf_t *dev = (cc2538rf_t *)netdev;
     gnrc_pktsnip_t *snip;
@@ -289,7 +286,6 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     }
 
 
-
     /* check if packet (header + payload + FCS) fits into FIFO */
     snip = pkt->next;
     if ((gnrc_pkt_len(snip) + len + 2) > CC2538RF_MAX_PACKET_LEN) {
@@ -304,10 +300,18 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
 
     //TODO: prepare package for sending and send over fifo of cc2538rf
     DEBUG("cc2538rf: putting mac_header + payload_length+2 into RFDATA register\n");
-    RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
+    //RFCORE_SFR_RFDATA =  gnrc_pkt_len(snip) + len + 2;
+    uint8_t package_size = gnrc_pkt_len(snip) + len + 2;
+    cc2538rf_tx_load(&package_size, sizeof(package_size), 0);
 
     DEBUG("cc2538rf: putting stuff into the RFDATA register\n");
+    cc2538rf_tx_load(mhr, len, 0);
+    while(snip){
+      cc2538rf_tx_load(snip->data, snip->size, 0);
+      snip = snip->next;
+    }
 
+/*
     for(int i = 0; i<len; i++){
       RFCORE_SFR_RFDATA = mhr[i];
     }
@@ -318,7 +322,7 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
       }
       snip = snip->next;
     }
-
+*/
 
     //read how much is in the TX FIFO
     DEBUG("cc2538rf: amount currently in the TX FIFO: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
@@ -328,46 +332,21 @@ static int _send(gnrc_netdev_t *netdev, gnrc_pktsnip_t *pkt){
     DEBUG("cc2538rf: trying to send over cc2538 RF DATA register\n");
     //set SET_RXENMASK_ON_TX to switch on RX after TX finished
     //RFCORE->XREG_FRMCTRL1 |= 0x01;
-    RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
-
-    //check current csp instruction
-#if ENABLE_DEBUG
-    uint8_t currentCSP = (uint8_t) RFCORE_SFR_RFST;
-    DEBUG("cc2538rf: current CSP instruction OPCODE: %x\n", currentCSP);
-#endif
-
-    DEBUG("cc2538rf: amount currently in the TX FIFO after send: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
-
-
-    DEBUG("cc2538rf: amount currently in the TX FIFO after flush: %u\n", (uint8_t)RFCORE_XREG_TXFIFOCNT);
-
-/*  not sure if needed, but stall program until everything has been sent
-  int counter = 0;
-  while(!((RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE))
-        && (counter++ < 3)) {
-    DEBUG("cc2538rf: sleeping\n");
-    xtimer_usleep(6);
-  }
-*/
-
+    cc2538rf_tx_exec();
 
     while(RFCORE_XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE )
       DEBUG("cc2538rf: Still Sending\n");
 
-      DEBUG("cc2538rf: sending complete\n");
-
-      dev->event_cb(NETDEV_EVENT_TX_COMPLETE, NULL);
-
-
-
+    DEBUG("cc2538rf: sending complete\n");
+    cc2538rf_flush_tx_fifo();
+    dev->event_cb(NETDEV_EVENT_TX_COMPLETE, NULL);
     gnrc_pktbuf_release(pkt);
     dev->state = NETOPT_STATE_IDLE;
 
-    return len;
+    return (int)len;
 }
 
 
-//TODO: not implemented yet
 static int _add_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
 {
   DEBUG("cc2538rf: adding event cb:\n");
@@ -383,7 +362,6 @@ static int _add_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
 }
 
 
-//TODO: not implemented yet
 static int _rem_event_cb(gnrc_netdev_t *dev, gnrc_netdev_event_cb_t cb)
 {
 
@@ -410,21 +388,6 @@ static int _get(gnrc_netdev_t *device, netopt_t opt, void *val, size_t max_len)
     }
 
     cc2538rf_t *dev = (cc2538rf_t *) device;
-
-/*
-    switch (opt) {
-        case NETOPT_CHANNEL:
-            if (max_len < sizeof(uint16_t)) {
-                return -EOVERFLOW;
-            }
-            ((uint8_t *)val)[1] = 0;
-            ((uint8_t *)val)[0] = cc2538rf_get_chan(dev);
-            return sizeof(uint16_t);
-
-        default:
-            break;
-    }
-*/
 
     switch (opt) {
 
@@ -672,19 +635,9 @@ const netdev2_driver_t cc2538rf_driver_netdev2 = {
 */
 
 
-//TODO check with contiki and stuff also device not fully initialized
-//in sense of riot yet
 int cc2538rf_init(cc2538rf_t *dev)
 {
   DEBUG("cc2538rf: Init\n");
-#if ENABLE_DEBUG
-  DEBUG("cc2538rf: checking if CSP is runngin or idle: \n");
-  if((uint8_t)RFCORE->XREG_CSPSTAT & CC2538RF_CSP_RUNNING){
-    DEBUG("cc2538rf: CSP is runngin\n");
-  }else{
-    DEBUG("cc2538rf: CSP is idle\n");
-  }
-#endif
 
   //trying to reset whole rf in order not to reset the whole mote
   DEBUG("cc2538rf_init: current RXENABLE: %u \n", (uint8_t)RFCORE->XREG_RXENABLE);
@@ -716,25 +669,23 @@ int cc2538rf_init(cc2538rf_t *dev)
   //setting up addresses
   uint64_t longAddress;
   cpuid_get((void*)&longAddress);
-#if ENABLE_DEBUG
-  uint8_t* longToShortAddress = (uint8_t*) &longAddress;
-#endif
   cc2538rf_set_addr_long(dev, longAddress);
 
+
 #if ENABLE_DEBUG
+  uint8_t* longToShortAddress = (uint8_t*) &longAddress;
   DEBUG("cc2538rf: long address from flash: \n");
   for(int i = 0; i<8; i++){
     DEBUG("%x:", longToShortAddress[i]);
   }
   DEBUG("\n");
-#endif
-
 
   DEBUG("cc2538rf: current long address:\n");
   for(int i = 0; i<8; i++){
     DEBUG("%x:", dev->addr_long[i]);
   }
   DEBUG("\n");
+#endif
 
   uint16_t addr_short = (dev->addr_long[6]<<8) | dev->addr_long[7];
   cc2538rf_set_addr_short(dev, addr_short);
@@ -778,6 +729,7 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
 
   DEBUG("cc2538rf_init: enabling interrupts\n");
   //activating alternate Vector map
+  //TODO: doesn`t work, find out why
   SYS_CTRL->I_MAP = 0x1;
   DEBUG("cc2538rf_init: alternate interrupt table flag: %u\n", (uint8_t) SYS_CTRL_I_MAP);
   //enable fifop interrupts
@@ -815,22 +767,16 @@ dev->options |= CC2538RF_OPT_SRC_ADDR_LONG;
   RFCORE->XREG_TXPOWER = CC2538RF_TX_POWER;
   dev->state = NETOPT_STATE_IDLE;
 
-  //ENERGEST_ON(ENERGEST_TYPE_LISTEN);
-
-
   //put RF into RX mode
   RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISRXON;
 
-  DEBUG("cc2538rf_init: checking RXMASK: %u\n", (uint8_t)RFCORE_XREG_RXENABLE);
-
-
-    return 0;
+  return 0;
 }
 
 void cc2538rf_reset(cc2538rf_t *dev)
 {
-
-    DEBUG("cc2538rf_reset(): reset not implemented yet.\n");
+    //TODO: Reset without losing all the address informations
+    cc2538rf_init(dev);
 }
 
 bool cc2538rf_cca(cc2538rf_t *dev)
@@ -839,27 +785,31 @@ bool cc2538rf_cca(cc2538rf_t *dev)
   return false;
 }
 
+//Unessecary due to _send function
 size_t cc2538rf_send(cc2538rf_t *dev, uint8_t *data, size_t len)
 {
   DEBUG("cc2538rf_send(): reset not implemented yet.\n");
   return -1;
 }
 
+//Unessecary due to _send function
 void cc2538rf_tx_prepare(cc2538rf_t *dev)
 {
   DEBUG("cc2538rf_tx_prepare(): reset not implemented yet.\n");
 }
 
-size_t cc2538rf_tx_load(cc2538rf_t *dev, uint8_t *data,
+size_t cc2538rf_tx_load(uint8_t *data,
                          size_t len, size_t offset)
 {
-  DEBUG("cc2538rf_tx_load(): reset not implemented yet.\n");
+  for(int i = 0+offset; i < len+offset; i++){
+      RFCORE_SFR_RFDATA = data[i];
+  }
   return 0;
 }
 
-void cc2538rf_tx_exec(cc2538rf_t *dev)
+void cc2538rf_tx_exec(void)
 {
-  DEBUG("cc2538rf_tx_exec(): reset not implemented yet.\n");
+  RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISTXON;
 }
 
 size_t cc2538rf_rx_len(cc2538rf_t *dev)
@@ -868,7 +818,17 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev)
   return 0;
 }
 
+void cc2538rf_flush_tx_fifo(void)
+{
+    RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+}
 
+void cc2538rf_flush_rx_fifo(void)
+{
+    RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    RFCORE->SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+}
 
 /* TODO: generalize and move to (gnrc_)ieee802154 */
 static gnrc_pktsnip_t *_make_netif_hdr(uint8_t *mhr)
@@ -984,8 +944,7 @@ void cc2538rf_rx_read(void)
 
   if(RFCORE->XREG_RXFIRST == 0){
     DEBUG("cc2538rf_rx_read: package length is 0. Frame is invalid. Flushing FIFO\n");
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    cc2538rf_flush_rx_fifo();
     return;
   }
 
@@ -1192,8 +1151,7 @@ void handle_rfcoretxrx_isr(void)
   if(irq1 & CC2538RF_IRQFLAG_TXDONE || irq1 & CC2538RF_IRQFLAG_TXACKDONE)
   {
     DEBUG("cc2538rf_rfcoreinterrupt: TX DONE\n");
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    cc2538rf_flush_rx_fifo();
     //RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXDONE;
     //RFCORE->SFR_RFIRQF1 &= ~CC2538RF_IRQFLAG_TXACKDONE;
   }
@@ -1278,12 +1236,10 @@ void isr_rfcoreerr(void)
     while(RFCORE->XREG_FSMSTAT1 & RFCORE_XREG_FSMSTAT1_TX_ACTIVE);
 
     //Flush TX FIFO
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHTX;
+    cc2538rf_flush_tx_fifo();
 
     //Flush RX FIFO
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
-    RFCORE_SFR_RFST = CC2538_RF_CSP_OP_ISFLUSHRX;
+    cc2538rf_flush_rx_fifo();
 
     //Checking if Radio is already off, otherwise we get a Strobe Error
     if(RFCORE_XREG_RXENABLE != 0) {

@@ -241,6 +241,7 @@ int _icmpv6_ping(int argc, char **argv)
 
         puts("vtimer start 2");
         vtimer_now(&start);
+        puts("sending ping frame");
         if (gnrc_netapi_send(ipv6_entry->pid, pkt) < 1) {
             puts("error: unable to send ICMPv6 echo request\n");
             gnrc_pktbuf_release(pkt);

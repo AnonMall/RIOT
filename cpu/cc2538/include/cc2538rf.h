@@ -489,7 +489,7 @@ void cc2538rf_tx_prepare(cc2538rf_t *dev);
  *
  * @return                  offset + number of bytes written
  */
-size_t cc2538rf_tx_load(cc2538rf_t *dev, uint8_t *data, size_t len,
+size_t cc2538rf_tx_load(uint8_t *data, size_t len,
                          size_t offset);
 
 /**
@@ -497,7 +497,13 @@ size_t cc2538rf_tx_load(cc2538rf_t *dev, uint8_t *data, size_t len,
  *
  * @param[in] dev           device to trigger
  */
-void cc2538rf_tx_exec(cc2538rf_t *dev);
+void cc2538rf_tx_exec(void);
+
+/**
+ * @brief   Flushes TX Fifo
+ *
+ */
+void cc2538rf_flush_tx_fifo(void);
 
 /**
  * @brief   Read the length of a received packet
@@ -513,6 +519,12 @@ size_t cc2538rf_rx_len(cc2538rf_t *dev);
  *
  */
 void cc2538rf_rx_read(void);
+
+/**
+ * @brief   Flushes RX Fifo
+ *
+ */
+void cc2538rf_flush_rx_fifo(void);
 
 
 
