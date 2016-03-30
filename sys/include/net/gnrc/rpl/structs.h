@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+#include "net/gnrc/ipv6/netif.h"
 #include "net/ipv6/addr.h"
 #include "xtimer.h"
 #include "trickle.h"
@@ -212,11 +213,9 @@ typedef struct {
  */
 struct gnrc_rpl_dodag {
     ipv6_addr_t dodag_id;           /**< id of the DODAG */
+    gnrc_ipv6_netif_addr_t *netif_addr; /**< netif address for this DODAG */
     gnrc_rpl_parent_t *parents;     /**< pointer to the parents list of this DODAG */
     gnrc_rpl_instance_t *instance;  /**< pointer to the instance that this dodag is part of */
-    uint8_t prefix_len;             /**< length of the prefix for the DODAG id */
-    uint32_t addr_preferred;        /**< time in seconds the DODAG id is preferred */
-    uint32_t addr_valid;            /**< time in seconds the DODAG id is valid */
     uint8_t dtsn;                   /**< DAO Trigger Sequence Number */
     uint8_t prf;                    /**< preferred flag */
     uint8_t dio_interval_doubl;     /**< trickle Imax parameter */
@@ -224,6 +223,7 @@ struct gnrc_rpl_dodag {
     uint8_t dio_redun;              /**< trickle k parameter */
     uint8_t default_lifetime;       /**< lifetime of routes (lifetime * unit) */
     uint16_t lifetime_unit;         /**< unit in seconds of the lifetime */
+    kernel_pid_t iface;             /**< interface PID this DODAG operates on */
     uint8_t version;                /**< version of this DODAG */
     uint8_t grounded;               /**< grounded flag */
     uint16_t my_rank;               /**< rank/position in the DODAG */

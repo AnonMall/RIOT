@@ -29,6 +29,11 @@
 #include "arch/thread_arch.h"
 #include "cpu_conf.h"
 #include "sched.h"
+#include "clist.h"
+
+#ifdef MODULE_CORE_THREAD_FLAGS
+#include "thread_flags.h"
+#endif
 
 #ifdef __cplusplus
  extern "C" {
@@ -44,12 +49,14 @@
  * @brief Blocked states.
  * @{
  */
-#define STATUS_STOPPED          0               /**< has terminated                     */
-#define STATUS_SLEEPING         1               /**< sleeping                           */
-#define STATUS_MUTEX_BLOCKED    2               /**< waiting for a locked mutex         */
-#define STATUS_RECEIVE_BLOCKED  3               /**< waiting for a message              */
-#define STATUS_SEND_BLOCKED     4               /**< waiting for message to be delivered*/
-#define STATUS_REPLY_BLOCKED    5               /**< waiting for a message response     */
+#define STATUS_STOPPED              0   /**< has terminated                     */
+#define STATUS_SLEEPING             1   /**< sleeping                           */
+#define STATUS_MUTEX_BLOCKED        2   /**< waiting for a locked mutex         */
+#define STATUS_RECEIVE_BLOCKED      3   /**< waiting for a message              */
+#define STATUS_SEND_BLOCKED         4   /**< waiting for message to be delivered*/
+#define STATUS_REPLY_BLOCKED        5   /**< waiting for a message response     */
+#define STATUS_FLAG_BLOCKED_ANY     6   /**< waiting for any flag from flag_mask*/
+#define STATUS_FLAG_BLOCKED_ALL     7   /**< waiting for all flags in flag_mask */
 /** @} */
 
 /**
@@ -57,8 +64,8 @@
  * @{*/
 #define STATUS_ON_RUNQUEUE      STATUS_RUNNING  /**< to check if on run queue:
                                                  `st >= STATUS_ON_RUNQUEUE`             */
-#define STATUS_RUNNING          6               /**< currently running                  */
-#define STATUS_PENDING          7               /**< waiting to be scheduled to run     */
+#define STATUS_RUNNING          8               /**< currently running                  */
+#define STATUS_PENDING          9               /**< waiting to be scheduled to run     */
 /** @} */
 /** @} */
 
@@ -67,10 +74,14 @@
  */
 struct _thread {
     char *sp;                       /**< thread's stack pointer         */
-    uint8_t status;                /**< thread's status                */
-    uint8_t priority;              /**< thread's priority              */
+    uint8_t status;                 /**< thread's status                */
+    uint8_t priority;               /**< thread's priority              */
 
     kernel_pid_t pid;               /**< thread's process id            */
+
+#ifdef MODULE_CORE_THREAD_FLAGS
+    thread_flags_t flags;           /**< currently set flags            */
+#endif
 
     clist_node_t rq_entry;          /**< run queue entry                */
 
@@ -314,6 +325,21 @@ char *thread_stack_init(thread_task_func_t task_func, void *arg, void *stack_sta
  * @brief   Prints the message queue of the current thread.
  */
 void thread_print_msg_queue(void);
+
+/**
+ * @brief Add thread to list, sorted by priority (internal)
+ *
+ * This will add @p thread to @p list sorted by the thread priority.
+ * It reuses the thread's rq_entry field.
+ * Used internally by msg and mutex implementations.
+ *
+ * @note Only use for threads *not on any runqueue* and with interrupts
+ *       disabled.
+ *
+ * @param[in] list      ptr to list root node
+ * @param[in] thread    thread to add
+ */
+void thread_add_to_list(list_node_t *list, thread_t *thread);
 
 #ifdef DEVELHELP
 /**

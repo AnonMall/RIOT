@@ -20,6 +20,8 @@ RIOTPKG ?= $(RIOTBASE)/pkg
 RIOTPROJECT ?= $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
 RIOTPROJECT := $(abspath $(RIOTPROJECT))
 
+GITCACHE:=$(RIOTBASE)/dist/tools/git/git-cache
+
 # Include Docker settings near the top because we need to build the environment
 # command line before some of the variable origins are overwritten below when
 # using abspath, strip etc.
@@ -159,6 +161,10 @@ endif
 
 export TOOLCHAIN
 
+# default toolchain prefix, defaults to target triple followed by a dash, you
+# will most likely not need to touch this.
+export PREFIX ?= $(if $(TARGET_ARCH),$(TARGET_ARCH)-)
+
 # Import all toolchain settings
 include $(RIOTCPU)/Makefile.include.$(TOOLCHAIN)
 
@@ -244,7 +250,7 @@ all: ..in-docker-container
 else
 ## make script for your application. Build RIOT-base here!
 all: ..compiler-check ..build-message $(USEPKG:%=${BINDIR}%.a) $(APPDEPS)
-	$(AD)DIRS="$(DIRS)" "$(MAKE)" -C $(CURDIR) -f $(RIOTBASE)/Makefile.application
+	$(AD)DIRS="$(DIRS)" "$(MAKE)" -C $(APPDIR) -f $(RIOTBASE)/Makefile.application
 ifeq (,$(RIOTNOLINK))
 ifeq ($(BUILDOSXNATIVE),1)
 	$(AD)$(if $(CPPMIX),$(CXX),$(LINK)) $(UNDEF) -o $(ELFFILE) $$(find $(BASELIBS) -size +8c) $(LINKFLAGS) $(LINKFLAGPREFIX)-no_pie
@@ -272,10 +278,6 @@ export USEMODULE_INCLUDES =
 include $(RIOTBASE)/sys/Makefile.include
 include $(RIOTBASE)/drivers/Makefile.include
 
-USEMODULE_INCLUDES_ = $(shell echo $(USEMODULE_INCLUDES) | tr ' ' '\n' | awk '!a[$$0]++' | tr '\n' ' ')
-
-INCLUDES += $(USEMODULE_INCLUDES_:%=-I%)
-
 # The `clean` needs to be serialized before everything else.
 ifneq (, $(filter clean, $(MAKECMDGOALS)))
     all $(BASELIBS) $(USEPKG:%=$(RIOTPKG)/%/Makefile.include): clean
@@ -287,6 +289,10 @@ $(RIOTPKG)/%/Makefile.include::
 
 .PHONY: $(USEPKG:%=$(RIOTPKG)/%/Makefile.include)
 -include $(USEPKG:%=$(RIOTPKG)/%/Makefile.include)
+
+USEMODULE_INCLUDES_ = $(shell echo $(USEMODULE_INCLUDES) | tr ' ' '\n' | awk '!a[$$0]++' | tr '\n' ' ')
+
+INCLUDES += $(USEMODULE_INCLUDES_:%=-I%)
 
 .PHONY: $(USEPKG:%=${BINDIR}%.a)
 $(USEPKG:%=${BINDIR}%.a):
@@ -302,6 +308,9 @@ clean:
 clean-intermediates:
 	-@for i in $(USEPKG) ; do "$(MAKE)" -C $(RIOTPKG)/$$i clean ; done
 	-@rm -rf $(BINDIR)/*.a $(BINDIR)/*/
+
+clean-pkg:
+	-@for i in $(USEPKG) ; do "$(MAKE)" -C $(RIOTPKG)/$$i distclean ; done
 
 distclean:
 	-@for i in $(USEPKG) ; do "$(MAKE)" -C $(RIOTPKG)/$$i distclean ; done
@@ -477,3 +486,6 @@ endif
 
 # Include desvirt Makefile
 include $(RIOTBASE)/dist/tools/desvirt/Makefile.desvirt
+
+# include bindist target
+include $(RIOTBASE)/Makefile.bindist
